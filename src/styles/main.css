@@ -47,7 +47,7 @@ button:focus-visible{outline:2px solid var(--bulb);outline-offset:2px}
 .outbulbs i.lit{background:var(--out);box-shadow:0 0 8px rgba(225,75,59,.8)}
 
 /* ---------- diamond ---------- */
-#diamondWrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:120px;position:relative;padding-top:8px}
+#diamondWrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:120px;position:relative;padding-top:18px}
 #diamond{width:min(74%,230px);aspect-ratio:1;max-height:100%;overflow:visible}
 .chalkline{fill:none;stroke:var(--chalk);stroke-width:2.2;opacity:.5}
 .basepad{fill:#081A12;stroke:var(--chalk);stroke-width:2;opacity:.9;transition:fill .3s}
@@ -62,7 +62,7 @@ button:focus-visible{outline:2px solid var(--bulb);outline-offset:2px}
 #pitcherTag b{color:var(--teal)}
 
 /* ---------- dice ---------- */
-#diceRow{display:flex;justify-content:center;gap:8px;margin:0 0 6px;perspective:520px;min-height:70px}
+#diceRow{display:flex;justify-content:center;gap:8px;margin:8px 0 6px;perspective:520px;min-height:70px}
 #dice3d{width:100%;height:212px;display:block;touch-action:manipulation}
 .die{width:62px;height:62px;border-radius:12px;background:var(--chalk);color:var(--field);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
@@ -123,7 +123,7 @@ button:focus-visible{outline:2px solid var(--bulb);outline-offset:2px}
 /* ---------- controls ---------- */
 #preview{text-align:center;min-height:22px;font-size:16px;letter-spacing:2px;color:var(--chalk-dim);font-weight:700}
 #preview b{color:var(--bulb)}
-#batterTag{text-align:center;font-size:22px;font-weight:900;letter-spacing:2px;color:var(--chalk-dim);min-height:26px;margin:0 0 -48px;position:relative;z-index:5;pointer-events:none}
+#batterTag{text-align:center;font-size:22px;font-weight:900;letter-spacing:2px;color:var(--chalk-dim);min-height:26px;margin:8px 0 -42px;position:relative;z-index:5;pointer-events:none}
 #batterTag b{color:var(--bulb)}
 #ctrlRow{display:flex;gap:8px;margin-top:6px}
 .ctl{flex:1;padding:14px 0;font-size:21px;font-weight:900;letter-spacing:2px;border-radius:8px;transition:transform .06s,opacity .2s}
@@ -188,5 +188,5 @@ button:focus-visible{outline:2px solid var(--bulb);outline-offset:2px}
 .ccount{font-size:12px;color:var(--chalk-dim);letter-spacing:1px}
 .backbtn{margin:12px auto 4px;display:block;width:170px;padding:11px 0;font-size:17px;font-weight:700;letter-spacing:2px;color:var(--chalk);box-shadow:inset 0 0 0 2px var(--chalk-dim);border-radius:8px}
 
-@media (max-height:640px){ .die{width:54px;height:54px} .die .g{font-size:20px} #dice3d{height:162px} #batterTag{margin-bottom:-32px} #diamond{width:60%} .logo{font-size:52px} }
+@media (max-height:640px){ .die{width:54px;height:54px} .die .g{font-size:20px} #dice3d{height:162px} #batterTag{margin:6px 0 -28px} #diamond{width:60%} .logo{font-size:52px} }
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
