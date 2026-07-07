@@ -1,0 +1,11 @@
+#buildTag {
+  position: fixed;
+  bottom: 4px;
+  right: 8px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--chalk-dim);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 99;
+}

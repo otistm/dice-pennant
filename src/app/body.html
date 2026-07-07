@@ -1,0 +1,88 @@
+<div id="app">
+
+  <!-- TITLE -->
+  <div class="screen on" id="titleScreen">
+    <div class="logo">DICE<br><em>PENNANT</em></div>
+    <div class="tagline">Roll the bones. Round the bases.</div>
+    <button class="bigbtn" id="playBtn">PLAY BALL</button>
+    <button class="bigbtn ghost" id="showBtn">SHOWDOWN · 3P TABLE</button>
+    <button class="bigbtn ghost" id="pvpBtn">PASS &amp; PLAY</button>
+    <button class="bigbtn ghost" id="collBtn">CLUBHOUSE</button>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="gameScreen">
+    <button id="quitBtn" aria-label="Forfeit and quit">✕</button>
+    <div id="board">
+      <div class="boardhead" id="boardHead"></div>
+      <div class="boardrow" id="rowAway"><span class="tn" id="tnAway">GUEST</span></div>
+      <div class="boardrow" id="rowThird" style="display:none"><span class="tn" id="tnThird"></span></div>
+      <div class="boardrow" id="rowHome"><span class="tn" id="tnHome">HOME</span></div>
+      <div id="boardFoot">
+        <span id="innTag">▲ 1ST</span>
+        <span class="outbulbs" id="outBulbs">OUT <i></i><i></i><i></i></span>
+      </div>
+    </div>
+
+    <div id="diamondWrap">
+      <div class="seatHand" id="seatL">
+        <div class="seatName">TIDE</div><div class="seatDice"></div><div class="seatOut"></div>
+      </div>
+      <div class="seatHand" id="seatR">
+        <div class="seatName">CLAY</div><div class="seatDice"></div><div class="seatOut"></div>
+      </div>
+      <div id="pitcherTag"></div>
+      <svg id="diamond" viewBox="0 0 100 100">
+        <path class="chalkline" d="M50 92 L8 50 L50 8 L92 50 Z"/>
+        <rect class="basepad" id="pad1" x="86" y="44" width="12" height="12" transform="rotate(45 92 50)"/>
+        <rect class="basepad" id="pad2" x="44" y="2"  width="12" height="12" transform="rotate(45 50 8)"/>
+        <rect class="basepad" id="pad3" x="2"  y="44" width="12" height="12" transform="rotate(45 8 50)"/>
+        <path class="basepad" d="M44 86 h12 v7 l-6 6 l-6 -6 Z" id="padH"/>
+      </svg>
+      <div id="marquee"><div id="marqueeText"></div></div>
+    </div>
+
+    <div id="ticker"><div id="tickerLine"></div></div>
+
+    <div id="batterTag"></div>
+    <div id="diceRow"></div>
+    <div id="preview"></div>
+    <div id="ctrlRow">
+      <button class="ctl" id="rollBtn">ROLL<span id="rollPips"><i></i><i></i></span></button>
+      <button class="ctl" id="bankBtn">TAKE IT</button>
+    </div>
+    <div id="handRow"></div>
+
+    <div class="overlay" id="handoffOverlay">
+      <h2 style="color:var(--teal)">PASS THE PHONE</h2>
+      <div class="sub" id="handoffSub"></div>
+      <button class="bigbtn" id="handoffGo">I'M UP</button>
+    </div>
+
+    <div class="overlay" id="endOverlay">
+      <h2 id="endTitle"></h2>
+      <div class="sub" id="endSub"></div>
+      <div id="packZone"></div>
+      <button class="bigbtn" id="againBtn">PLAY AGAIN</button>
+      <button class="bigbtn ghost" id="homeBtn">CLUBHOUSE</button>
+    </div>
+  </div>
+
+  <!-- COLLECTION -->
+  <div class="screen" id="collScreen">
+    <h1>CLUBHOUSE</h1>
+    <div class="hint">Tap 1·2·3 to set your batting order. Cards join your game hand automatically.</div>
+    <div class="secTitle">PLAYER DICE</div>
+    <div id="diceList"></div>
+    <div class="secTitle">CARD BINDER</div>
+    <div id="cardList"></div>
+    <button class="backbtn" id="collBack">BACK</button>
+  </div>
+
+</div>
+
+
+
+
+<div id="buildTag"></div>
+<style>#buildTag{position:fixed;bottom:4px;right:8px;font-size:9px;letter-spacing:1px;color:var(--chalk-dim);opacity:.55;pointer-events:none;z-index:99}</style>

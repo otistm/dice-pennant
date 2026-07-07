@@ -1,0 +1,29 @@
+name: Update dev notes
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  dev-notes:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Sync dev-notes.json from git history
+        run: node scripts/update-dev-notes.mjs
+      - name: Commit dev notes if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/dev-notes.json
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: update dev notes [skip ci]"
+          git push
