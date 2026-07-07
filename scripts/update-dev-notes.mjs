@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +8,7 @@ const out = path.join(root, 'public', 'dev-notes.json');
 
 function gitNotes() {
   try {
-    const raw = execSync('git log --pretty=format:%H|%aI|%s', {
+    const raw = execFileSync('git', ['log', '--pretty=format:%H|%aI|%s'], {
       cwd: root,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],

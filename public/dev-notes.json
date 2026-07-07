@@ -1,5 +1,16 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-07T15:25:34.963Z",
-  "notes": []
+  "updated": "2026-07-07T15:26:54.682Z",
+  "notes": [
+    {
+      "sha": "9516dca",
+      "date": "2026-07-07T11:25:35-04:00",
+      "message": "chore: update dev notes [skip ci]"
+    },
+    {
+      "sha": "229f1e2",
+      "date": "2026-07-07T11:25:10-04:00",
+      "message": "Production Vite build with 3D dice, dev notes, and GitHub sync."
+    }
+  ]
 }
