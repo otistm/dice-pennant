@@ -1,7 +1,17 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-07T15:27:15.661Z",
+  "updated": "2026-07-07T15:55:24.098Z",
   "notes": [
+    {
+      "sha": "78ee1c5",
+      "date": "2026-07-07T11:54:53-04:00",
+      "message": "Nudge diamond, batter tag, and dice tray lower on the field."
+    },
+    {
+      "sha": "c81afb8",
+      "date": "2026-07-07T15:27:15Z",
+      "message": "chore: update dev notes [skip ci]"
+    },
     {
       "sha": "a75c64b",
       "date": "2026-07-07T11:26:54-04:00",
