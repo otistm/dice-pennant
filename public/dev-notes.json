@@ -1,7 +1,12 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-07T15:26:54.682Z",
+  "updated": "2026-07-07T15:27:15.661Z",
   "notes": [
+    {
+      "sha": "a75c64b",
+      "date": "2026-07-07T11:26:54-04:00",
+      "message": "Fix dev-notes sync on Windows and populate commit history."
+    },
     {
       "sha": "9516dca",
       "date": "2026-07-07T11:25:35-04:00",
