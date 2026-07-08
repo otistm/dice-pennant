@@ -1,7 +1,17 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-07T15:55:24.098Z",
+  "updated": "2026-07-08T22:35:55.193Z",
   "notes": [
+    {
+      "sha": "49d6072",
+      "date": "2026-07-08T18:35:33-04:00",
+      "message": "Add VS THE ACE mode and enlarge side/pitcher seat dice."
+    },
+    {
+      "sha": "17b3b02",
+      "date": "2026-07-07T15:55:24Z",
+      "message": "chore: update dev notes [skip ci]"
+    },
     {
       "sha": "78ee1c5",
       "date": "2026-07-07T11:54:53-04:00",
