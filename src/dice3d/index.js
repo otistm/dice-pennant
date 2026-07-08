@@ -341,12 +341,12 @@ function createDiceView(opts = {}) {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     // pull camera in close — dice should dominate the tray.
-    // main tray frames tighter (bigger dice); side seats keep a little more air.
-    const pad = opts.side ? 0.8 : 0.32;
-    const near = opts.side ? 1.0 : 0.18;
+    // side/ace seats use a slightly looser frame than the main tray.
+    const pad = opts.side ? 0.42 : 0.32;
+    const near = opts.side ? 0.28 : 0.18;
     const half = (N - 1) / 2 * GAP + SIZE * pad;
     const vfov = camera.fov * Math.PI / 180;
-    const dist = Math.max(opts.side ? 3.8 : 3.05, half / (Math.tan(vfov / 2) * camera.aspect) + near);
+    const dist = Math.max(opts.side ? 3.2 : 3.05, half / (Math.tan(vfov / 2) * camera.aspect) + near);
     camera.position.set(0, dist * 0.62, dist);
     camera.lookAt(0, 0.35, 0);
     camera.updateProjectionMatrix();

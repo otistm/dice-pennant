@@ -59,7 +59,7 @@ const sfx = (() => {
 let G = null; // active game
 let GEN = 0;  // generation token: stale async loops bail out
 const FRESH = () => ({
-  mode: 'cpu',              // 'cpu' | 'pvp' | 'show'
+  mode: 'cpu',              // 'cpu' | 'pvp' | 'show' | 'ace'
   inning: 1, half: 'top',   // top = AWAY bats
   score: { away: [], home: [] },
   outs: 0, bases: [false, false, false],
@@ -73,9 +73,11 @@ const FRESH = () => ({
   over: false, busy: false,
   juice: false, squeeze: false, crowd: false, wind: false,
   cpuFx: { glove: false, rain: false },
-  // showdown (3-seat table)
+  // showdown / vs-the-ace (3-seat table)
   round: 0, steams: null, seatPlayP: null,
+  ace: null, acePlayP: null,
 });
+function isTable() { return G && (G.mode === 'show' || G.mode === 'ace'); }
 
 const dieById = id => DP.DICE[id];
 const lineupDice = ids => ids.map(dieById);
@@ -106,17 +108,17 @@ function show(id) { document.querySelectorAll('.screen').forEach(s => s.classLis
 function refreshTitle() {}
 
 /* ---------- board rendering ---------- */
-function boardCols() { return G.mode === 'show' ? 9 : Math.max(3, G.inning); }
+function boardCols() { return isTable() ? 9 : Math.max(3, G.inning); }
 function setBoardCols(n) {
   const tpl = `64px repeat(${n},1fr) 34px`;
   document.querySelectorAll('.boardrow, .boardhead').forEach(el => el.style.gridTemplateColumns = tpl);
   const head = $('boardHead');
   head.innerHTML = '<span></span>' + Array.from({ length: n }, (_, i) =>
-    `<span>${G.mode === 'show' ? i + 1 : i + 1}</span>`).join('') + '<span>R</span>';
+    `<span>${i + 1}</span>`).join('') + '<span>R</span>';
 }
 function buildBoardRows() {
-  $('rowThird').style.display = G.mode === 'show' ? '' : 'none';
-  const sides = G.mode === 'show' ? ['Away', 'Third', 'Home'] : ['Away', 'Home'];
+  $('rowThird').style.display = isTable() ? '' : 'none';
+  const sides = isTable() ? ['Away', 'Third', 'Home'] : ['Away', 'Home'];
   const n = boardCols();
   setBoardCols(n);
   for (const side of sides) {
@@ -132,7 +134,7 @@ function ensureBoardCols() {
   const have = $('rowHome').querySelectorAll('.cell').length - 1; // minus R
   if (want <= have) return;
   setBoardCols(want);
-  const sides = G.mode === 'show' ? ['Away', 'Third', 'Home'] : ['Away', 'Home'];
+  const sides = isTable() ? ['Away', 'Third', 'Home'] : ['Away', 'Home'];
   for (const side of sides) {
     const row = $('row' + side);
     const rCell = row.querySelector('.cell.R');
@@ -206,7 +208,7 @@ function animateOut(gen) {
 }
 
 function renderBoard() {
-  if (G.mode === 'show') return renderShowBoard();
+  if (isTable()) return renderShowBoard();
   clearPadDots();
   ensureBoardCols();
   const n = boardCols();
@@ -236,17 +238,47 @@ function renderBoard() {
 }
 function total(side) { return G.score[side].reduce((s, v) => s + (v || 0), 0); }
 
-/* ================= SHOWDOWN (3-seat table) ================= */
+/* ================= SHOWDOWN / VS THE ACE (3-seat table) ================= */
+const ACES = [
+  { name: 'THE PROSPECT', faces: ['BAT', 'EYE', 'RUN', 'K', 'K', 'K'], fx: null, text: 'Green as the outfield grass.' },
+  { name: 'THE ACE', faces: ['BAT', 'BAT', 'EYE', 'K', 'K', 'K'], fx: null, text: 'Paints the corners.' },
+  { name: 'THE LEGEND', faces: ['BAT', 'BAT', 'BAT', 'RUN', 'K', 'K'], fx: null, text: 'You have heard the stories.' },
+];
+const ACE_FX = [
+  { fx: 'burn', tag: 'SMOKE', text: "One of every batter's dice burns to K on the first roll." },
+  { fx: 'nohustle', tag: 'JUNK', text: 'Nothing to run on: hustle bases are disabled.' },
+  { fx: 'icewalk', tag: 'ICE', text: 'Walks never beat this arm.' },
+];
+function pickAce() {
+  const w = profile.wins;
+  const base = { ...ACES[w < 3 ? 0 : w < 8 ? 1 : 2] };
+  if (w >= 2) {
+    const f = ACE_FX[Math.floor(rng() * ACE_FX.length)];
+    base.fx = f.fx; base.fxTag = f.tag; base.fxText = f.text;
+  }
+  return base;
+}
+function pitchName(rank) {
+  if (rank <= 0) return 'WILD PITCH';
+  if (rank <= 0.7) return 'CHANGEUP';
+  if (rank <= 1.4) return 'FASTBALL';
+  if (rank <= 2.4) return 'SLIDER';
+  if (rank <= 3) return 'CURVEBALL';
+  if (rank <= 4) return 'SPLITTER';
+  return 'UNTOUCHABLE';
+}
 const SEAT_META = [
   { name: 'YOU',  cls: '',   dot: '#FFB63B', stroke: '#5a3c0c' },
   { name: 'TIDE', cls: 'tL', dot: '#6FC7B4', stroke: '#0d3b31' },
   { name: 'CLAY', cls: 'tR', dot: '#D2703E', stroke: '#3b1a0d' },
 ];
-const seatViews = [null, null, null], seatChips = [false, false, false];
+const seatViews = [null, null, null, null], seatChips = [false, false, false, false];
+const SEAT_EL = { 1: 'seatL', 2: 'seatR', 3: 'seatT' };
+function seatContainer(sn) { return $(SEAT_EL[sn]).querySelector('.seatDice'); }
 
-function initSeatViews() {
-  [1, 2].forEach(sn => {
-    const cont = $(sn === 1 ? 'seatL' : 'seatR').querySelector('.seatDice');
+function initSeatViews(seats) {
+  (seats || [1, 2]).forEach(sn => {
+    const cont = seatContainer(sn);
     if (seatViews[sn]) { seatViews[sn].resize(); return; }
     if (seatChips[sn]) return;
     if (USE3D) {
@@ -257,12 +289,12 @@ function initSeatViews() {
   });
 }
 function chipsRender(sn, faces, ghost) {
-  const cont = $(sn === 1 ? 'seatL' : 'seatR').querySelector('.seatDice');
-  cont.innerHTML = `<div class="chips" style="opacity:${ghost ? .45 : 1}">` +
+  seatContainer(sn).innerHTML = `<div class="chips" style="opacity:${ghost ? .45 : 1}">` +
     faces.map(f => `<i class="${f === 'K' ? 'k' : 'f-' + f}">${GLYPH[f]}</i>`).join('') + '</div>';
 }
 function seatOutChip(sn, text, isOut) {
-  const el = $(sn === 1 ? 'seatL' : 'seatR').querySelector('.seatOut');
+  if (!SEAT_EL[sn]) return;
+  const el = $(SEAT_EL[sn]).querySelector('.seatOut');
   el.textContent = text || '';
   el.classList.toggle('o', !!isOut);
 }
@@ -279,21 +311,20 @@ async function seatRollAnim(sn, t, spinning, gen) {
     seatViews[sn].setState({ faces: t.faces, sel: [], picking: false, interactive: false });
   } else { await sleep(340); if (gen === GEN) chipsRender(sn, t.faces, false); }
 }
-function outcomeForFaces(faces) {
+function outcomeForFaces(faces, opts) {
   if (DP.countK(faces) >= 3) return { kind: 'out', bases: 0, label: 'STRUCK OUT' };
-  return DP.resolve(faces, {});
+  return DP.resolve(faces, opts || {});
 }
 async function playSeat(sn, gen) {
   const t = G.steams[sn];
   const die = t.lineup[(G.round - 1) % 3];
   await sleep(500 + Math.random() * 500);
   if (gen !== GEN) return;
-  // first roll: everything tumbles
   t.faces = [0, 1, 2, 3, 4].map(() => die.faces[Math.floor(rng() * 6)]);
+  if (G.mode === 'ace' && G.ace && G.ace.fx === 'burn') t.faces[Math.floor(rng() * 5)] = 'K';
   await seatRollAnim(sn, t, [true, true, true, true, true], gen);
   if (gen !== GEN) return;
   if (DP.countK(t.faces) < 3) {
-    // pick a target line greedily, rethrow the rest (same 1-reroll, K-lock rules as you)
     const keep = DP.greedyKeep(t.faces);
     const sel = t.faces.map((f, i) => f !== 'K' && !keep[i]);
     if (sel.some(Boolean)) {
@@ -304,19 +335,47 @@ async function playSeat(sn, gen) {
       if (gen !== GEN) return;
     }
   }
-  t.outcome = outcomeForFaces(t.faces);
+  t.outcome = outcomeForFaces(t.faces, tableOpts());
   seatOutChip(sn, t.outcome.kind === 'out' ? 'OUT' : t.outcome.label, t.outcome.kind === 'out');
+}
+
+async function playAce(gen) {
+  const a = G.ace;
+  const die = { id: 'ACE', name: a.name, faces: a.faces };
+  seatGhost(3, die);
+  seatOutChip(3, '');
+  await sleep(300);
+  if (gen !== GEN) return;
+  a.hand = [0, 1, 2, 3, 4].map(() => a.faces[Math.floor(rng() * 6)]);
+  await seatRollAnim(3, { faces: a.hand }, [true, true, true, true, true], gen);
+  if (gen !== GEN) return;
+  if (DP.countK(a.hand) < 3) {
+    const keep = DP.greedyKeep(a.hand);
+    const sel = a.hand.map((f, i) => f !== 'K' && !keep[i]);
+    if (sel.some(Boolean)) {
+      await sleep(320);
+      if (gen !== GEN) return;
+      a.hand = a.hand.map((f, i) => sel[i] ? a.faces[Math.floor(rng() * 6)] : f);
+      await seatRollAnim(3, { faces: a.hand }, sel, gen);
+      if (gen !== GEN) return;
+    }
+  }
+  a.outcome = outcomeForFaces(a.hand, {});
+  a.rank = DP.rankOutcome(a.outcome);
+  seatOutChip(3, `${pitchName(a.rank)} — BEAT ${a.rank <= 0 ? 'ANYTHING' : a.outcome.kind === 'walk' ? 'A WALK' : a.outcome.label}`,
+    a.rank <= 0);
 }
 
 const PADC = [[92, 50], [50, 8], [8, 50]];
 function clearPadDots() { const g = $('padDots'); if (g) g.remove(); }
 function renderPadDots(excludeSeat) {
   clearPadDots();
-  if (G.mode !== 'show' || !G.steams) return;
+  if (!isTable() || !G.steams) return;
+  const ex = Array.isArray(excludeSeat) ? excludeSeat : [excludeSeat];
   const g = svgEl('g', { id: 'padDots' });
   const OFF = [[0, 4.8], [-4.8, -2.8], [4.8, -2.8]];
   G.steams.forEach((t, sn) => {
-    if (sn === excludeSeat) return;
+    if (ex.includes(sn)) return;
     t.bases.forEach((occ, b) => {
       if (!occ) return;
       g.appendChild(svgEl('circle', { class: 'padDot', r: 2.5,
@@ -345,7 +404,8 @@ function renderShowBoard() {
   $('innTag').textContent = 'ROUND ' + Math.max(1, G.round) + ' / 9';
   ['pad1', 'pad2', 'pad3'].forEach(p => $(p).classList.remove('occ'));
   renderPadDots(-1);
-  $('pitcherTag').innerHTML = '';
+  $('pitcherTag').innerHTML = (G.mode === 'ace' && G.ace && G.ace.fx)
+    ? `ON THE MOUND: <b>${G.ace.name}</b> — ${G.ace.fxText}` : '';
 }
 
 function startRound() {
@@ -357,6 +417,7 @@ function startRound() {
   const gen = GEN;
   seatGhost(1, G.steams[1].lineup[(G.round - 1) % 3]);
   seatGhost(2, G.steams[2].lineup[(G.round - 1) % 3]);
+  G.acePlayP = G.mode === 'ace' ? playAce(gen) : Promise.resolve();
   G.seatPlayP = Promise.all([playSeat(1, gen), playSeat(2, gen)]);
   startAtBat();
 }
@@ -372,10 +433,48 @@ async function showdownSettle(outcome) {
   if (gen !== GEN) return;
   await sleep(500);
   if (gen !== GEN) return;
-  const ranks = G.steams.map(t => DP.rankOutcome(t.outcome));
+  await (G.acePlayP || Promise.resolve());
+  if (gen !== GEN) return;
+  const rankOf = t => {
+    let r = DP.rankOutcome(t.outcome);
+    if (G.mode === 'ace' && G.ace.fx === 'icewalk' && t.outcome && t.outcome.kind === 'walk') r = 0;
+    return r;
+  };
+  const ranks = G.steams.map(rankOf);
+  const r0 = G.round - 1;
+  if (G.mode === 'ace') {
+    G.steams.forEach(t => { t.line[r0] = 0; });
+    const bar = G.ace.rank;
+    const winners2 = ranks.map((r, i) => [r, i]).filter(x => x[0] > bar).map(x => x[1]);
+    if (!winners2.length) {
+      marquee(`${G.ace.name} DEALS — SIDE RETIRED`, true); sfx.out(); animateOut(gen);
+    } else {
+      let bestRuns = 0, lines = [];
+      const allMoves = [];
+      for (const w2 of winners2) {
+        const t = G.steams[w2];
+        const adv = DP.advance(t.bases, t.outcome);
+        t.bases = adv.bases;
+        t.line[r0] = adv.runs;
+        bestRuns = Math.max(bestRuns, adv.runs);
+        lines.push(`${t.name} ${t.outcome.label}`);
+        allMoves.push([adv.moves, SEAT_META[w2].cls]);
+      }
+      if (bestRuns || winners2.some(w2 => G.steams[w2].outcome.bases === 4)) sfx.big(); else sfx.hit();
+      marquee(lines.join(' · '));
+      renderPadDots(winners2);
+      Promise.all(allMoves.map(([m, c]) => animateRunners(m, gen, 240, c)))
+        .then(() => { if (gen === GEN) renderPadDots(-1); });
+    }
+    setTimeout(() => { if (gen === GEN) renderBoard(); }, 650);
+    await sleep(1650);
+    if (gen !== GEN) return;
+    G.busy = false;
+    if (G.round >= 9) return endShowdown();
+    return startRound();
+  }
   const top = Math.max(...ranks);
   const winners = ranks.map((r, i) => [r, i]).filter(x => x[0] === top).map(x => x[1]);
-  const r0 = G.round - 1;
   G.steams.forEach(t => { t.line[r0] = 0; });
   if (top === 0) {
     marquee('ALL BUST', true); sfx.out(); animateOut(gen);
@@ -391,8 +490,7 @@ async function showdownSettle(outcome) {
     renderPadDots(w);
     animateRunners(adv.moves, gen, 240, SEAT_META[w].cls).then(() => { if (gen === GEN) renderPadDots(-1); });
   }
-  const cellsUpdate = () => { if (gen === GEN) renderBoard(); };
-  setTimeout(cellsUpdate, top === 0 || winners.length > 1 ? 200 : 650);
+  setTimeout(() => { if (gen === GEN) renderBoard(); }, top === 0 || winners.length > 1 ? 200 : 650);
   await sleep(1650);
   if (gen !== GEN) return;
   G.busy = false;
@@ -412,6 +510,7 @@ function endShowdown() {
   if (winners.length > 1) { t.textContent = 'SPLIT POT — DRAW'; t.className = 'win'; }
   else if (youWin) { t.textContent = 'YOU TAKE THE TABLE'; t.className = 'win'; }
   else { t.textContent = `${G.steams[winners[0]].name} TAKES THE TABLE`; t.className = 'loss'; }
+  if (G.mode === 'ace' && totals.every(v => v === 0)) { t.textContent = `${G.ace.name} THROWS A NO-HITTER`; t.className = 'loss'; }
   $('endSub').textContent = `YOU ${totals[0]} · TIDE ${totals[1]} · CLAY ${totals[2]}`;
   $('packZone').innerHTML = '';
   if (youWin) offerPack();
@@ -483,8 +582,13 @@ function currentOutcome() {
   if (DP.countK(G.faces) >= 3) return { kind: 'out', bases: 0, label: 'STRUCK OUT' };
   return DP.resolve(G.faces, opts);
 }
+function tableOpts() {
+  const o = {};
+  if (G.mode === 'ace' && G.ace && G.ace.fx === 'nohustle') o.noHustle = true;
+  return o;
+}
 function pitchOpts() {
-  const opts = {};
+  const opts = Object.assign({}, tableOpts());
   if (G.wind) opts.wind = true;
   if (G.mode === 'cpu' && G.half === 'bottom' && G.pitcher) {
     if (G.pitcher.mod === 'nohustle') opts.noHustle = true;
@@ -527,7 +631,7 @@ function cardLegal(cid) {
 
 /* ---------- at-bat flow ---------- */
 function isHumanHalf() {
-  if (G.mode === 'pvp' || G.mode === 'show') return true;
+  if (G.mode === 'pvp' || isTable()) return true;
   return G.half === 'bottom';
 }
 function currentLineup() { return G.half === 'top' ? G.lineups.away : G.lineups.home; }
@@ -553,12 +657,19 @@ function startAtBat() {
 
 function rollFaces(first) {
   const die = currentBatterDie();
-  const burn = first && G.mode === 'cpu' && G.half === 'bottom' && G.pitcher && G.pitcher.mod === 'burnlead' && G._leadoffPending;
+  const burn = first && (
+    (G.mode === 'cpu' && G.half === 'bottom' && G.pitcher && G.pitcher.mod === 'burnlead' && G._leadoffPending) ||
+    (G.mode === 'ace' && G.ace && G.ace.fx === 'burn')
+  );
   G.faces = G.faces.map((f, i) => {
     if (!first && (!G.sel[i] || f === 'K')) return f;
     return die.faces[Math.floor(rng() * 6)];
   });
-  if (burn) { G.faces[Math.floor(rng() * 5)] = 'K'; G._leadoffPending = false; marquee('HIGH HEAT!', true); }
+  if (burn) {
+    G.faces[Math.floor(rng() * 5)] = 'K';
+    if (G.mode === 'cpu') G._leadoffPending = false;
+    marquee('HIGH HEAT!', true);
+  }
 }
 
 async function onRoll() {
@@ -749,7 +860,7 @@ function addRuns(n) {
 }
 
 async function settle(outcome) {
-  if (G.mode === 'show') return showdownSettle(outcome);
+  if (isTable()) return showdownSettle(outcome);
   const gen = GEN;
   G.busy = true;
   $('rollBtn').disabled = true; $('bankBtn').disabled = true; G.picking = null;
@@ -891,10 +1002,19 @@ function startGame(mode) {
   GEN++;
   G = FRESH();
   G.mode = mode;
-  $('gameScreen').classList.toggle('showdown', mode === 'show');
+  $('gameScreen').classList.toggle('showdown', mode === 'show' || mode === 'ace');
+  $('gameScreen').classList.toggle('acemode', mode === 'ace');
   show('gameScreen');
   initDice3D();
-  if (mode === 'show') {
+  if (mode === 'show' || mode === 'ace') {
+    if (mode === 'ace') {
+      G.ace = pickAce();
+      $('seatT').querySelector('.seatName').textContent = G.ace.fxTag || '';
+      $('seatT').querySelector('.seatOut').textContent = '';
+      initSeatViews([1, 2, 3]);
+    } else {
+      initSeatViews([1, 2]);
+    }
     G.steams = SEAT_META.map((m, i) => ({
       name: m.name,
       line: Array(9).fill(null),
@@ -905,7 +1025,6 @@ function startGame(mode) {
     G.lineups.home = G.steams[0].lineup;
     G.lineups.away = G.steams[1].lineup;
     G.pitcher = null; G.hand = []; G.used = {};
-    initSeatViews();
     buildBoardRows(); renderBoard();
     $('ticker').classList.remove('on');
     $('endOverlay').classList.remove('on'); $('handoffOverlay').classList.remove('on');
@@ -1045,6 +1164,7 @@ function marqueeToastColl(msg) { $('collScreen').querySelector('.hint').textCont
 $('playBtn').onclick = () => startGame('cpu');
 $('pvpBtn').onclick = () => startGame('pvp');
 $('showBtn').onclick = () => startGame('show');
+$('aceBtn').onclick = () => startGame('ace');
 let quitTimer = null;
 $('quitBtn').onclick = () => {
   const b = $('quitBtn');
@@ -1057,7 +1177,7 @@ $('quitBtn').onclick = () => {
   clearTimeout(quitTimer);
   b.classList.remove('arm'); b.textContent = '\u2715';
   GEN++;                                   // kill every pending timer/animation
-  if ((G.mode === 'cpu' || G.mode === 'show') && !G.over) { profile.games++; saveProfile(); }
+  if ((G.mode === 'cpu' || G.mode === 'show' || G.mode === 'ace') && !G.over) { profile.games++; saveProfile(); }
   G.over = true;
   $('endOverlay').classList.remove('on'); $('handoffOverlay').classList.remove('on'); $('ticker').classList.remove('on');
   refreshTitle();

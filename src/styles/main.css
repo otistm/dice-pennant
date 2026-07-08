@@ -95,18 +95,23 @@ button:focus-visible{outline:2px solid var(--bulb);outline-offset:2px}
 .runner.score{animation:scorepop .26s ease-out forwards;transform-box:fill-box;transform-origin:center}
 @keyframes scorepop{0%{transform:scale(1);opacity:1}100%{transform:scale(2.4);opacity:0}}
 .skull{font-size:11px;pointer-events:none;filter:drop-shadow(0 0 3px rgba(225,75,59,.9))}
-.seatHand{display:none;position:absolute;top:50%;width:216px;height:74px;z-index:3;pointer-events:none;
+.seatHand{display:none;position:absolute;top:50%;width:270px;height:96px;z-index:3;pointer-events:none;
   flex-direction:column;align-items:center;gap:1px}
 .showdown .seatHand{display:flex}
-#seatL{left:0;transform:translate(-74px,-50%) rotate(90deg)}
-#seatR{right:0;transform:translate(74px,-50%) rotate(-90deg)}
+#seatL{left:0;transform:translate(-92px,-50%) rotate(90deg)}
+#seatT{display:none;top:0;left:50%;transform:translate(-50%,-18px);width:300px;height:96px}
+.acemode #seatT{display:flex}
+#seatT .seatName{color:var(--out);font-size:12px}
+#seatT .seatOut{color:var(--out)}
+#seatT .seatDice{width:300px;height:84px}
+#seatR{right:0;transform:translate(92px,-50%) rotate(-90deg)}
 .seatName{font-size:10px;letter-spacing:2px;font-weight:900}
 #seatL .seatName{color:var(--teal)} #seatR .seatName{color:var(--clay)}
-.seatDice{width:216px;height:46px}
+.seatDice{width:270px;height:64px}
 .seatDice canvas{width:100%;height:100%;display:block}
 .seatDice .chips{display:flex;justify-content:center;gap:3px;padding-top:4px}
-.seatDice .chips i{font-style:normal;width:26px;height:26px;border-radius:5px;background:var(--chalk);color:var(--field);
-  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px}
+.seatDice .chips i{font-style:normal;width:32px;height:32px;border-radius:5px;background:var(--chalk);color:var(--field);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px}
 .seatDice .chips i.k{background:#3A1613;color:var(--out)}
 .seatDice .chips i.f-POW{color:var(--clay)} .seatDice .chips i.f-EYE{color:#1C6E5C} .seatDice .chips i.f-RUN{color:#4C7A22}
 .seatOut{font-size:11px;font-weight:900;letter-spacing:1px;min-height:13px;color:var(--bulb)}
