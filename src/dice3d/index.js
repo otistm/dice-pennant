@@ -12,7 +12,7 @@ const TEX_CACHE_ID = 'crisp1';
 const FACE_TEX = 1024; // 4× reference — extra mip headroom keeps labels legible
 let __faceUps = null;
 function createDiceView(opts = {}) {
-  const N = 5, GAP = opts.side ? 1.34 : 1.18, SIZE = 1;
+  const N = 5, GAP = opts.side ? 1.22 : 1.18, SIZE = 1;
   // BoxGeometry material slots: +x -x +y -y +z -z ; local face normals:
   const NORMALS = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
   let renderer, scene, camera, ray, canvas, container;
