@@ -1,7 +1,17 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-08T22:35:55.193Z",
+  "updated": "2026-07-08T23:44:40.757Z",
   "notes": [
+    {
+      "sha": "f3677ed",
+      "date": "2026-07-08T19:44:21-04:00",
+      "message": "Fix ace/showdown seat dice overlapping the diamond."
+    },
+    {
+      "sha": "4edfb92",
+      "date": "2026-07-08T22:35:55Z",
+      "message": "chore: update dev notes [skip ci]"
+    },
     {
       "sha": "49d6072",
       "date": "2026-07-08T18:35:33-04:00",
