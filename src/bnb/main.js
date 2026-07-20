@@ -293,7 +293,8 @@ function buildScreen() {
 
 function leaveMode() {
   BGEN++;
-  $('bnbScreen').classList.remove('cpuTurn');
+  document.getElementById('bnbCoinToss')?.remove();
+  $('bnbScreen').classList.remove('cpuTurn', 'tossing');
   document.body.classList.remove('bnbActive');
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 'titleScreen'));
 }
@@ -1069,25 +1070,28 @@ async function startBnbGame() {
   const gen = BGEN;
   B = FRESHB();
   B.youFirst = rng() < 0.5; // decided now; the coin toss reveals it
+  // Hide the board and flip first — dice WebGL is created AFTER so it doesn't
+  // fight the coin for a context or composite over the overlay.
+  $('bnbScreen').classList.add('tossing');
   buildBoardRows();
   renderBudget(false);
   renderCards();
   renderShop();
   renderScenarios();
   renderBoard();
-  initViews();
-  renderCpuDiceIdle(true);
   B.faces = [null, null, null, null, null];
-  renderDice(false);
   updateButtons();
   await coinToss({
     youFirst: B.youFirst,
-    mount: $('bnbScreen'),
     isLive: () => gen === BGEN,
     onFlip: () => sfx.roll(),
     onLand: () => sfx.coin(2),
   });
   if (gen !== BGEN) return;
+  $('bnbScreen').classList.remove('tossing');
+  initViews();
+  renderCpuDiceIdle(true);
+  renderDice(false);
   marquee('PLAY BALL!');
   beginHalf();
 }
