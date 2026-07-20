@@ -40,6 +40,7 @@ const sfx = (() => {
     walk() { tone(440, 0, .09); tone(554, .09, .12); },
     coin(n) { for (let i = 0; i < Math.min(n || 1, 4); i++) { tone(988, i * .07, .06, 'sine', .07); tone(1319, i * .07 + .04, .08, 'sine', .06); } },
     pick() { tone(880, 0, .06, 'sine', .07); tone(1175, .06, .1, 'sine', .07); },
+    reject() { tone(200, 0, .09, 'sawtooth', .06); tone(150, .08, .12, 'sawtooth', .05); },
   };
 })();
 
@@ -52,6 +53,43 @@ const sstore = {
 };
 let SEASON = sstore.load();
 const saveSeason = () => SEASON && sstore.save(SEASON);
+
+/* ---------- profile (survives season resets) ---------- */
+const PKEY = 'dicepennant_bnb_profile_v1';
+const pstore = {
+  load() {
+    try {
+      const s = localStorage.getItem(PKEY);
+      if (s) {
+        const o = JSON.parse(s);
+        return { unlocked: Array.isArray(o.unlocked) ? o.unlocked : [], perfects: o.perfects | 0 };
+      }
+    } catch (e) {}
+    return { unlocked: [], perfects: 0 };
+  },
+  save(o) { try { localStorage.setItem(PKEY, JSON.stringify(o)); } catch (e) {} },
+};
+let PROFILE = pstore.load();
+const saveProfile = () => pstore.save(PROFILE);
+
+const isHeroUnlocked = h => !h.lockTier || PROFILE.unlocked.includes(h.id);
+const nextLockedLegend = () => HEROES
+  .filter(h => h.lockTier && !PROFILE.unlocked.includes(h.id))
+  .sort((a, b) => a.lockTier - b.lockTier)[0] || null;
+const nextUnlockTier = () => { const n = nextLockedLegend(); return n ? n.lockTier : Infinity; };
+
+/** Grant the next legend for a perfect season. Returns the newly unlocked hero, or null. */
+function grantPerfect() {
+  PROFILE.perfects = (PROFILE.perfects | 0) + 1;
+  const next = nextLockedLegend();
+  if (next) {
+    PROFILE.unlocked = [...PROFILE.unlocked, next.id];
+    saveProfile();
+    return next;
+  }
+  saveProfile();
+  return null;
+}
 
 function restockShop() {
   const owned = SEASON ? Object.values(SEASON.equip).filter(Boolean) : [];
@@ -324,31 +362,51 @@ function prepIdleScreen() {
 }
 
 /* ---------- hero pick ---------- */
-function miniCardHTML(h) {
+function miniCardHTML(h, opts = {}) {
+  const locked = !!opts.locked;
   const c = countFaces(h.faces);
   const dom = ['POW', 'BAT', 'RUN', 'EYE'].sort((a, b) => c[b] - c[a])[0];
-  return `<div class="bpCard">
-    <div class="hdr"><span class="team">YOUR CLUB</span><span class="num">#${h.num}</span></div>
+  const glyph = locked ? '?' : GLYPH[dom];
+  const faces = locked
+    ? h.faces.map(() => `<i class="fc-ANY">?</i>`).join('')
+    : h.faces.map(f => `<i class="fc-${f}">${GLYPH[f]}</i>`).join('');
+  const blurb = locked
+    ? (opts.lockHint || 'LOCKED')
+    : h.blurb;
+  return `<div class="bpCard${locked ? ' lockedCard' : ''}">
+    ${locked ? '<span class="lockBadge">LOCKED</span>' : ''}
+    <div class="hdr"><span class="team">${locked ? 'UNSIGNED' : 'YOUR CLUB'}</span><span class="num">#${h.num}</span></div>
     <div class="nm">${h.name.toUpperCase()}</div>
     <div class="pos">${h.pos} · BALLPLAYER</div>
-    <div class="portrait"><span class="g">${GLYPH[dom]}</span><span class="capNum">#${h.num}</span></div>
-    <div class="facesRow">${h.faces.map(f => `<i class="fc-${f}">${GLYPH[f]}</i>`).join('')}</div>
-    <div class="blurb">${h.blurb}</div>
+    <div class="portrait"><span class="g">${glyph}</span><span class="capNum">#${h.num}</span></div>
+    <div class="facesRow">${faces}</div>
+    <div class="blurb">${blurb}</div>
   </div>`;
 }
 function showHeroPick() {
   const row = $('bnbHeroRow');
   row.innerHTML = '';
+  const unlockAt = nextUnlockTier();
   HEROES.forEach(h => {
+    const unlocked = isHeroUnlocked(h);
     const el = document.createElement('div');
-    el.className = 'heroPick';
-    el.innerHTML = miniCardHTML(h);
-    el.onclick = () => {
-      sfx.pick();
-      newSeason(h.id);
-      $('bnbHeroOverlay').classList.remove('on');
-      showFrontOffice(null);
-    };
+    el.className = 'heroPick' + (unlocked ? '' : ' locked');
+    const lockHint = !unlocked
+      ? (h.lockTier === unlockAt
+        ? 'WIN ALL 10 GAMES TO SIGN'
+        : 'ANOTHER PERFECT SEASON AFTER THAT')
+      : '';
+    el.innerHTML = miniCardHTML(h, { locked: !unlocked, lockHint });
+    if (unlocked) {
+      el.onclick = () => {
+        sfx.pick();
+        newSeason(h.id);
+        $('bnbHeroOverlay').classList.remove('on');
+        showFrontOffice(null);
+      };
+    } else {
+      el.onclick = () => sfx.reject();
+    }
     row.appendChild(el);
   });
   $('bnbHeroOverlay').classList.add('on');
@@ -368,12 +426,37 @@ function showFrontOffice(payLines) {
   const done = SEASON.gameIdx >= SEASON_LEN;
   const wins = SEASON.results.filter(r => r === 'W').length;
   const t = $('bnbOvTitle');
+  let unlockHTML = '';
   if (done) {
-    SEASON.done = true; saveSeason();
+    SEASON.done = true;
+    // Perfect season (10–0): unlock the next legend once per season
+    let unlockedHero = null;
+    if (wins === SEASON_LEN && !SEASON.rewarded) {
+      SEASON.rewarded = true;
+      unlockedHero = grantPerfect();
+      sfx.big();
+    }
+    saveSeason();
+    const perfect = wins === SEASON_LEN;
     const champ = wins >= 6;
-    t.textContent = champ ? 'PENNANT WINNERS!' : 'SEASON OVER';
-    t.className = champ ? 'win' : 'loss';
+    if (perfect) {
+      t.textContent = 'PERFECT SEASON!';
+      t.className = 'win';
+    } else {
+      t.textContent = champ ? 'PENNANT WINNERS!' : 'SEASON OVER';
+      t.className = champ ? 'win' : 'loss';
+    }
     $('bnbOvSub').textContent = `FINAL RECORD ${wins} – ${SEASON_LEN - wins}`;
+    if (perfect) {
+      if (unlockedHero) {
+        unlockHTML = `<div class="unlockReveal">
+          <span class="unlockLine">NEW BALLPLAYER SIGNED — ${unlockedHero.name.toUpperCase()}</span>
+          ${miniCardHTML(unlockedHero)}
+        </div>`;
+      } else {
+        unlockHTML = `<span class="unlockLine">EVERY LEGEND SIGNED</span>`;
+      }
+    }
     $('bnbOvGo').textContent = 'NEW SEASON';
     $('bnbOvGo').onclick = () => {
       sstore.clear(); SEASON = null;
@@ -390,8 +473,9 @@ function showFrontOffice(payLines) {
     $('bnbOvGo').onclick = () => { $('bnbGameOverlay').classList.remove('on'); startBnbGame(); };
   }
   $('bnbOvGames').innerHTML = gameListHTML();
-  $('bnbOvPay').innerHTML = payLines
+  const payHTML = payLines
     ? payLines.lines.map(l => `<span>${l}</span>`).join('') : '';
+  $('bnbOvPay').innerHTML = payHTML + unlockHTML;
   $('bnbGameOverlay').classList.add('on');
 }
 
@@ -1128,9 +1212,20 @@ if (titleBtn) titleBtn.onclick = enterBnB;
 /* test hooks */
 window.__BNB_TEST = {
   get B() { return B; }, get SEASON() { return SEASON; },
-  enterBnB, startBnbGame,
+  get PROFILE() { return PROFILE; },
+  enterBnB, startBnbGame, showHeroPick, showFrontOffice, grantPerfect,
   forceFaces(f) { B.faces = f; B.rolled = true; B.busy = false; afterRoll(); },
   settleYou, onRoll, onBank, endHalf, renderBoard,
   get hero() { return hero(); }, get opp() { return opp(); },
   clearSeason() { sstore.clear(); SEASON = null; },
+  clearProfile() { PROFILE = { unlocked: [], perfects: 0 }; pstore.save(PROFILE); },
+  /** Simulate a finished 10–0 season and open the celebration overlay. */
+  simulatePerfectSeason() {
+    if (!SEASON) newSeason(HEROES[0].id);
+    SEASON.results = Array.from({ length: SEASON_LEN }, () => 'W');
+    SEASON.gameIdx = SEASON_LEN;
+    SEASON.rewarded = false;
+    saveSeason();
+    showFrontOffice({ title: 'YOU WIN!', cls: 'win', lines: ['FINAL — TEST 0 · YOU 1'] });
+  },
 };

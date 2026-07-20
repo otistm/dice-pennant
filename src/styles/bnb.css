@@ -225,12 +225,23 @@ body.dragging *{cursor:grabbing!important}
 #bnbOverlay .rec b{color:var(--bulb)}
 .payLines{display:flex;flex-direction:column;gap:4px;font-size:15px;letter-spacing:1.5px;color:var(--chalk-dim)}
 .payLines b{color:var(--bulb)}
-.heroPickRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.heroPickRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:980px}
 .heroPick{cursor:pointer;transition:transform .14s}
 .heroPick:hover{transform:translateY(-6px) scale(1.03)}
-.heroPick .bpCard{width:170px;height:238px}
-.heroPick .bpCard .nm{font-size:20px}
-.heroPick .bpCard .portrait .g{font-size:48px}
+.heroPick .bpCard{width:148px;height:220px}
+.heroPick .bpCard .nm{font-size:17px}
+.heroPick .bpCard .portrait .g{font-size:42px}
+.heroPick .bpCard .blurb{font-size:11px}
+.heroPick.locked{cursor:default;opacity:.62;filter:grayscale(.85)}
+.heroPick.locked:hover{transform:none}
+.heroPick .bpCard.lockedCard{position:relative}
+.heroPick .lockBadge{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:2;
+  background:#081A12;color:var(--bulb);font-size:9px;font-weight:900;letter-spacing:1.5px;
+  padding:2px 8px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--bulb-dim)}
+.unlockReveal{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:8px}
+.unlockReveal .bpCard{width:170px;height:238px;animation:ctIn .35s ease-out}
+.unlockLine{display:block;font-size:15px;font-weight:900;letter-spacing:2px;color:var(--bulb);
+  text-shadow:0 0 18px rgba(255,182,59,.45);margin-top:6px}
 .bnbGameList{display:flex;gap:6px;justify-content:center;margin:4px 0}
 .bnbGameList i{width:22px;height:22px;border-radius:4px;background:#081A12;box-shadow:inset 0 0 0 1px #2E4A3C;
   font-style:normal;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;color:var(--chalk-dim)}

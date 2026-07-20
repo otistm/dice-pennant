@@ -36,6 +36,18 @@ for (const h of HEROES) {
   }
 }
 
+// --- locked legend chain ---
+const legends = HEROES.filter(h => h.lockTier);
+ok(legends.length === 3, 'exactly 3 locked legends');
+ok(HEROES.filter(h => !h.lockTier).length === 4, '4 starter heroes stay unlocked');
+const tiers = legends.map(h => h.lockTier).sort((a, b) => a - b);
+ok(tiers.join(',') === '1,2,3', `legend tiers are 1..3 unique (${tiers.join(',')})`);
+ok(new Set(legends.map(h => h.id)).size === 3, 'legend ids unique');
+const natural = HEROES.find(h => h.id === 'NATURAL');
+ok(natural && !natural.faces.includes('K'), 'The Natural has no K face');
+ok(HEROES.find(h => h.id === 'KRAKEN')?.faces.filter(f => f === 'POW').length === 4, 'Kraken is POW-heavy');
+ok(HEROES.find(h => h.id === 'MAGIC')?.lockTier === 3, 'Magician is tier 3');
+
 // --- new equipment ---
 let r = applyEquipment(['K', 'BAT', 'BAT', 'RUN', 'EYE'], 'SHADES');
 ok(r.faces[0] === 'EYE', 'SHADES converts K->EYE');
