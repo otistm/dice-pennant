@@ -1,7 +1,12 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-20T19:45:35.446Z",
+  "updated": "2026-07-20T19:45:49.293Z",
   "notes": [
+    {
+      "sha": "bda24f4",
+      "date": "2026-07-20T15:44:50-04:00",
+      "message": "Expand BnB gear roster and diversify hero scenario outcomes."
+    },
     {
       "sha": "f1cd930",
       "date": "2026-07-20T03:03:06Z",
