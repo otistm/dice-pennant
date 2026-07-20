@@ -10,6 +10,7 @@ import {
   runPre, advance, greedyKeep, countK, scoreOutcome,
 } from './engine.js';
 import { makeGearDraggable, makeSocketTileDraggable } from './snap.js';
+import { coinToss } from './coin.js';
 
 const $ = id => document.getElementById(id);
 const rng = Math.random;
@@ -86,8 +87,11 @@ const FRESHB = () => ({
   faces: [], sel: [false, false, false, false, false],
   rollsLeft: 1, rolled: false, busy: false, over: false,
   rabbitUsed: false, leadoff: true, convNote: null, slumpArmed: false,
+  youFirst: false, // coin toss: true = you bat in the top half (away team)
 });
-const isYourHalf = () => B && B.half === 'bottom';
+const isYourHalf = () => B && B.half === (B.youFirst ? 'top' : 'bottom');
+const youSide = () => (B.youFirst ? 'away' : 'home');
+const cpuSide = () => (B.youFirst ? 'home' : 'away');
 const total = side => B.score[side].reduce((s, v) => s + (v || 0), 0);
 
 /* ---------- dice views ---------- */
@@ -439,15 +443,17 @@ function renderBoard() {
     }
     cells[n].textContent = tot;
   }
-  $('bnbTnAway').textContent = opp().team.split(' ')[0];
+  const oppName = opp().team.split(' ')[0];
+  $('bnbTnAway').textContent = B.youFirst ? 'YOU' : oppName;
+  $('bnbTnHome').textContent = B.youFirst ? oppName : 'YOU';
   $('bnbTnAway').classList.toggle('batting', B.half === 'top');
   $('bnbTnHome').classList.toggle('batting', B.half === 'bottom');
   const ord = ['1ST', '2ND', '3RD'][B.inning - 1] || (B.inning + 'TH');
   $('bnbInnTag').textContent = (B.half === 'top' ? '▲ ' : '▼ ') + ord;
   $('bnbOutBulbs').querySelectorAll('i').forEach((b, i) => b.classList.toggle('lit', i < B.outs));
   ['bnbPad1', 'bnbPad2', 'bnbPad3'].forEach((p, i) => $(p).classList.toggle('occ', B.bases[i]));
-  document.querySelector('#bnbYouAsm .bpCard')?.classList.toggle('batting', B.half === 'bottom');
-  document.querySelector('#bnbCpuAsm .bpCard')?.classList.toggle('batting', B.half === 'top');
+  document.querySelector('#bnbYouAsm .bpCard')?.classList.toggle('batting', isYourHalf());
+  document.querySelector('#bnbCpuAsm .bpCard')?.classList.toggle('batting', !isYourHalf());
   $('bnbSeasonTag').innerHTML = `<b>BATS-N-BASES</b> · GAME ${Math.min(SEASON.gameIdx + 1, SEASON_LEN)}/${SEASON_LEN}
     <br><span class="opp">VS ${opp().team}</span>
     <div class="bnbGameList" style="justify-content:flex-start;margin-top:4px">${gameListHTML()}</div>`;
@@ -880,7 +886,7 @@ async function settleYou(outcome, scen) {
     let runs = r.runs + runsThisAB;
     if (outcome.doubleRuns && runs) runs *= 2;
     runsThisAB = runs;
-    addRuns('home', runs);
+    addRuns(youSide(), runs);
     if (outcome.bases === 4) sfx.big(); else if (outcome.kind === 'walk') sfx.walk(); else sfx.hit();
     marquee(outcome.label + (runs ? ` · ${runs} IN!` : ''));
     ['bnbPad1', 'bnbPad2', 'bnbPad3'].forEach(p => $(p).classList.remove('occ'));
@@ -904,9 +910,10 @@ function addRuns(side, n) {
   B.score[side][i] = (B.score[side][i] || 0) + n;
 }
 
+/* Whoever bats last (home) can walk it off — the CPU too, when you bat first. */
 function checkWalkoff() {
   if (B.half === 'bottom' && B.inning >= 3 && total('home') > total('away')) {
-    marquee('WALK-OFF!');
+    marquee(isYourHalf() ? 'WALK-OFF!' : 'CPU WALKS IT OFF!', !isYourHalf());
     endBnbGame();
     return true;
   }
@@ -922,7 +929,6 @@ async function endHalf() {
   if (B.half === 'top') {
     if (B.inning >= 3 && total('home') > total('away')) return endBnbGame();
     B.half = 'bottom';
-    B.leadoff = true;
   } else {
     if (B.inning >= 3 && total('home') !== total('away')) return endBnbGame();
     if (B.inning >= 9) return endBnbGame();
@@ -947,6 +953,7 @@ function beginHalf() {
   renderBoard();
   setTurnUI();
   if (isYourHalf()) {
+    B.leadoff = true; // flamethrower burns your leadoff batter each inning
     $('bnbCpuLbl').textContent = "CPU'S DICE";
     renderCpuDiceIdle(true);
     startAtBat();
@@ -966,6 +973,7 @@ async function cpuHalf() {
   while (gen === BGEN && B.outs < 3 && !B.over) {
     await cpuAtBat(gen);
     if (gen !== BGEN || B.over) return;
+    if (checkWalkoff()) return;
     await sleep(650);
   }
   if (gen !== BGEN || B.over) return;
@@ -1045,7 +1053,7 @@ async function cpuAtBat(gen) {
     const r = advance(B.bases, outcome);
     B.bases = r.bases;
     runs += r.runs;
-    addRuns('away', runs);
+    addRuns(cpuSide(), runs);
     if (outcome.bases === 4) sfx.big(); else if (outcome.kind === 'walk') sfx.walk(); else sfx.hit();
     marquee((viaScen ? viaScen.name + ' — ' : '') + outcome.label + (runs ? ` · ${runs} IN` : ''), false);
     ['bnbPad1', 'bnbPad2', 'bnbPad3'].forEach(p => $(p).classList.remove('occ'));
@@ -1056,9 +1064,11 @@ async function cpuAtBat(gen) {
 }
 
 /* ---------- game start / end ---------- */
-function startBnbGame() {
+async function startBnbGame() {
   BGEN++;
+  const gen = BGEN;
   B = FRESHB();
+  B.youFirst = rng() < 0.5; // decided now; the coin toss reveals it
   buildBoardRows();
   renderBudget(false);
   renderCards();
@@ -1070,6 +1080,14 @@ function startBnbGame() {
   B.faces = [null, null, null, null, null];
   renderDice(false);
   updateButtons();
+  await coinToss({
+    youFirst: B.youFirst,
+    mount: $('bnbScreen'),
+    isLive: () => gen === BGEN,
+    onFlip: () => sfx.roll(),
+    onLand: () => sfx.coin(2),
+  });
+  if (gen !== BGEN) return;
   marquee('PLAY BALL!');
   beginHalf();
 }
@@ -1077,12 +1095,12 @@ function startBnbGame() {
 function endBnbGame() {
   B.over = true;
   $('bnbScreen').classList.remove('cpuTurn');
-  const h = total('home'), a = total('away');
-  const won = h > a;
+  const you = total(youSide()), them = total(cpuSide());
+  const won = you > them;
   const beaten = opp().team;
   SEASON.results[SEASON.gameIdx] = won ? 'W' : 'L';
   SEASON.gameIdx++;
-  const lines = [`FINAL — ${beaten} ${a} · YOU ${h}`];
+  const lines = [`FINAL — ${beaten} ${them} · YOU ${you}`];
   pay(ECON.showPay, ''); lines.push(`SHOW-UP PAY <b>+$${ECON.showPay}</b>`);
   if (won) { pay(ECON.winBonus, ''); lines.push(`WIN BONUS <b>+$${ECON.winBonus}</b>`); }
   else { pay(ECON.lossPay, ''); lines.push(`CONSOLATION <b>+$${ECON.lossPay}</b>`); }
@@ -1092,7 +1110,7 @@ function endBnbGame() {
   setTimeout(() => {
     BGEN++; // stop any lingering animations once the overlay takes over
     showFrontOffice({
-      title: won ? 'YOU WIN!' : (h === a ? 'CALLED — TIE' : 'TOUGH LOSS'),
+      title: won ? 'YOU WIN!' : (you === them ? 'CALLED — TIE' : 'TOUGH LOSS'),
       cls: won ? 'win' : 'loss',
       lines,
     });
