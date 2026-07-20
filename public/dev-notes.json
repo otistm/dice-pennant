@@ -1,7 +1,17 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-20T20:36:59.170Z",
+  "updated": "2026-07-20T20:40:32.160Z",
   "notes": [
+    {
+      "sha": "5bdeae9",
+      "date": "2026-07-20T16:40:18-04:00",
+      "message": "Drop DESKTOP from the Bats-n-Bases title button."
+    },
+    {
+      "sha": "bf2a96a",
+      "date": "2026-07-20T20:36:59Z",
+      "message": "chore: update dev notes [skip ci]"
+    },
     {
       "sha": "45bb61d",
       "date": "2026-07-20T16:36:34-04:00",
