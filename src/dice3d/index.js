@@ -148,6 +148,14 @@ function createDiceView(opts = {}) {
     });
   }
 
+  // retexture one die's slots (e.g. gear converting a face); pass 6 faces
+  function setDieFaces(i, faces6) {
+    if (!live || !dice[i]) return;
+    const d = dice[i];
+    d.faceSlots = faces6.slice(0, 6);
+    d.mesh.material.forEach((m, s) => { m.map = faceTexture(d.faceSlots[s]); m.needsUpdate = true; });
+  }
+
   function computeFaceUps() {
     // for each of the 6 box faces, find the local direction of increasing v
     // (with flipY textures, that's the direction the label's top points)
@@ -230,7 +238,7 @@ function createDiceView(opts = {}) {
       }
       d.ghostFor = null;
       setDieMaterial(d, f);
-      if (d.mode === 'idle') d.baseY = (s.sel[i] && f !== 'K') ? 0.42 : 0;
+      if (d.mode === 'idle') d.baseY = (s.sel[i] && (s.kSelectable || f !== 'K')) ? 0.42 : 0;
     });
   }
 
@@ -328,7 +336,7 @@ function createDiceView(opts = {}) {
       const h = m.position.y;
       d.sh.material.opacity = Math.max(0.08, 0.42 - h * 0.28);
       d.sh.scale.setScalar(Math.max(0.55, 1 - h * 0.3));
-      const sel = state.sel[i] && state.faces[i] !== 'K';   // marked for the rethrow
+      const sel = state.sel[i] && (state.kSelectable || state.faces[i] !== 'K');   // marked for the rethrow
       const pick = state.picking && state.faces[i] != null;
       d.halo.material.color.setHex(pick ? 0x6fc7b4 : 0xd2703e);
       d.halo.material.opacity = d.mode !== 'idle' ? 0 : pick ? 0.55 + 0.3 * Math.sin(t0 * 6) : sel ? 0.85 : 0;
@@ -361,7 +369,7 @@ function createDiceView(opts = {}) {
     if (hit) tapCb(hit.object.userData.i);
   }
 
-  return { init, setBatter, setState, roll, resize, onTap: cb => tapCb = cb,
+  return { init, setBatter, setDieFaces, setState, roll, resize, onTap: cb => tapCb = cb,
            onFail: cb => failCb = cb,
            _dbg: () => ({ dice, state, live, NORMALS, camera, faceUps: __faceUps }) };
 }

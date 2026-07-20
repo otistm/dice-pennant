@@ -1,0 +1,220 @@
+/* ================= BATS-N-BASES (desktop) ================= */
+
+/* widen the app shell only while the mode is active */
+body.bnbActive{overflow:auto}
+body.bnbActive #app{width:min(1180px,100vw);height:auto;min-height:100dvh}
+
+#bnbScreen{position:absolute;inset:0;display:none;flex-direction:column;padding:12px 18px 20px;gap:10px;overflow-y:auto}
+#bnbScreen.on{display:flex;opacity:1;pointer-events:auto}
+#bnbScreen .overlay{position:fixed}
+#bnbQuit{position:fixed;top:8px;right:12px;z-index:30;font-size:12px;font-weight:900;letter-spacing:1px;
+  color:var(--chalk-dim);padding:6px 10px;border-radius:8px;box-shadow:inset 0 0 0 1.5px #2E4A3C}
+#bnbQuit:hover{color:var(--out);box-shadow:inset 0 0 0 1.5px var(--out)}
+
+/* ---------- top strip: season tag + scoreboard + budget ---------- */
+.bnbTop{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:14px}
+.bnbSeasonTag{font-size:13px;letter-spacing:2px;color:var(--chalk-dim);line-height:1.5}
+.bnbSeasonTag b{color:var(--bulb);font-size:16px}
+.bnbSeasonTag .opp{color:var(--chalk);font-weight:900;font-size:15px;letter-spacing:1.5px}
+#bnbBoard{background:var(--felt2);border:2px solid #1E4A36;border-radius:10px;padding:8px 12px 6px;
+  box-shadow:inset 0 0 30px rgba(0,0,0,.45);min-width:340px}
+.bnbBudget{justify-self:end;text-align:right}
+.bnbCoin{display:inline-flex;align-items:center;gap:8px;background:#081A12;border-radius:24px;padding:6px 14px 6px 8px;
+  box-shadow:inset 0 0 0 1.5px var(--bulb-dim);position:relative}
+.payFloat{position:absolute;right:4px;top:-20px;font-size:13px;font-weight:900;letter-spacing:1px;color:var(--bulb);
+  animation:payfloat 1.4s ease-out forwards;white-space:nowrap;pointer-events:none}
+.payFloat.neg{color:var(--out)}
+@keyframes payfloat{0%{opacity:0;transform:translateY(8px)}15%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
+.bnbCoin .c{width:30px;height:30px;border-radius:50%;background:var(--bulb);color:var(--field);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;box-shadow:0 2px 0 var(--bulb-dim)}
+.bnbCoin .t{font-size:13px;letter-spacing:2px;color:var(--chalk-dim);font-weight:700}
+.bnbCoin.flash .c{animation:coinpop .45s ease}
+@keyframes coinpop{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
+.bnbPitchTag{margin-top:6px;font-size:11.5px;letter-spacing:1px;color:var(--chalk-dim);max-width:240px}
+.bnbPitchTag b{color:var(--out)}
+
+/* ---------- mid: card | center | card ---------- */
+.bnbMid{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
+.bnbCardCol{display:flex;flex-direction:column;align-items:center;gap:8px}
+.bnbRoleTag{font-size:15px;font-weight:900;letter-spacing:3px;color:var(--chalk-dim);min-height:18px}
+.bnbRoleTag b{color:var(--bulb)}
+
+/* ---------- ballplayer card assembly (Topps 2.5:3.5 body + socket rail) ---------- */
+.cardAsm{display:flex;align-items:stretch;position:relative}
+
+/* the card itself */
+.bpCard{width:200px;height:280px;border-radius:12px;background:linear-gradient(170deg,#F5F0DE 0%,#EFEAD8 55%,#E4DCC4 100%);
+  color:var(--field);position:relative;z-index:2;display:flex;flex-direction:column;overflow:visible;
+  box-shadow:0 6px 18px rgba(0,0,0,.55),inset 0 0 0 3px #0B231A,inset 0 0 0 6px var(--bulb)}
+.bpCard .hdr{display:flex;align-items:baseline;justify-content:space-between;padding:12px 14px 2px}
+.bpCard .team{font-size:10px;letter-spacing:2px;font-weight:700;color:var(--clay)}
+.bpCard .num{font-size:20px;font-weight:900;color:var(--clay)}
+.bpCard .nm{font-size:24px;font-weight:900;letter-spacing:1px;line-height:.95;padding:0 14px}
+.bpCard .pos{font-size:11px;letter-spacing:2px;color:#5c6b5f;padding:2px 14px 0;font-weight:700}
+.bpCard .portrait{margin:8px 12px 6px;flex:1;border-radius:6px;background:
+  radial-gradient(ellipse 90% 70% at 50% 30%,#1E4A36 0%,#0F2E21 70%);
+  display:flex;align-items:center;justify-content:center;position:relative;box-shadow:inset 0 0 0 2px #0B231A}
+.bpCard .portrait .g{font-size:64px;color:var(--chalk);text-shadow:0 0 22px rgba(255,182,59,.5)}
+.bpCard .portrait .capNum{position:absolute;bottom:6px;right:8px;font-size:13px;font-weight:900;color:var(--bulb)}
+.bpCard .facesRow{display:flex;justify-content:center;gap:3px;padding:0 12px 6px}
+.bpCard .facesRow i{font-style:normal;font-size:12px;font-weight:900;background:#0B231A;border-radius:3px;padding:2px 4px;min-width:18px;text-align:center}
+.bpCard .blurb{font-size:10.5px;color:#4c5a50;text-align:center;padding:0 12px 10px;font-weight:500;letter-spacing:.3px}
+.bpCard.batting{box-shadow:0 6px 22px rgba(0,0,0,.55),inset 0 0 0 3px #0B231A,inset 0 0 0 6px var(--bulb),0 0 26px rgba(255,182,59,.35)}
+
+/* ---------- socket rail (flush against the card edge) ---------- */
+.sockRail{width:150px;height:280px;display:flex;flex-direction:column;justify-content:center;gap:10px;position:relative;z-index:3}
+.socket{height:86px;border-radius:9px;position:relative;display:flex;align-items:center;justify-content:center;
+  transition:box-shadow .18s, background .18s}
+.socket .lbl{font-size:11px;letter-spacing:2px;font-weight:900;opacity:.85}
+.socket.equipment{background:rgba(156,223,168,.13);box-shadow:inset 0 0 0 1.5px rgba(156,223,168,.4);color:#9CDFA8}
+.socket.perk{background:rgba(159,190,234,.13);box-shadow:inset 0 0 0 1.5px rgba(159,190,234,.4);color:#9FBEEA}
+.socket.quirk{background:rgba(239,160,152,.13);box-shadow:inset 0 0 0 1.5px rgba(239,160,152,.4);color:#EFA098}
+.socket.filled .lbl{display:none}
+/* drop-target choreography */
+.socket.wants{animation:sockpulse .9s ease-in-out infinite}
+.socket.hot{animation:none;box-shadow:inset 0 0 0 2.5px var(--bulb),0 0 22px rgba(255,182,59,.55)!important;background:rgba(255,182,59,.14)!important}
+@keyframes sockpulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.55)}}
+
+/* ---------- gear tiles (shop + equipped) ---------- */
+.gearTile{position:relative;width:158px;height:96px;border-radius:8px;padding:10px 12px 9px;text-align:left;
+  display:flex;flex-direction:column;justify-content:space-between;cursor:grab;
+  font-family:var(--disp);transition:transform .12s, box-shadow .12s, opacity .2s;touch-action:none}
+.gearTile:active{cursor:grabbing}
+.gearTile .gnm{font-size:16px;font-weight:900;letter-spacing:.6px;color:var(--field);line-height:1}
+.gearTile .gtx{font-size:12.5px;line-height:1.22;color:#25352b;font-weight:600}
+.gearTile.equipment{background:#9CDFA8;box-shadow:0 3px 0 #28513A}
+.gearTile.perk{background:#9FBEEA;box-shadow:0 3px 0 #274058}
+.gearTile.quirk{background:#EFA098;box-shadow:0 3px 0 #54302C}
+.gearTile .cost{position:absolute;top:-8px;left:-8px;width:22px;height:22px;border-radius:50%;background:#081A12;color:var(--bulb);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;box-shadow:0 0 0 1.5px var(--bulb-dim)}
+.gearTile:hover{transform:translateY(-3px)}
+.gearTile.lifted{opacity:.25}
+.gearTile.sold{opacity:.28;filter:saturate(.3);pointer-events:none}
+/* equipped tile sitting in a socket, flush against the card seam.
+   Still grabbable: drag it out of the socket to sell it. */
+.socket .gearTile{position:absolute;inset:3px 0 3px 6px;width:auto;height:auto;padding:8px 10px 7px}
+.socket .gearTile .gtx{font-size:11px;line-height:1.18}
+.cardAsm.cpu .socket .gearTile{inset:3px 6px 3px 0;cursor:default}
+.socket .gearTile:hover{transform:none}
+.socket .gearTile.justSnapped{animation:snapland .42s cubic-bezier(.2,1.7,.45,1)}
+@keyframes snapland{0%{transform:scale(1.12)}55%{transform:scale(.96)}100%{transform:scale(1)}}
+
+/* dragging ghost */
+.dragGhost{position:fixed;z-index:200;pointer-events:none;opacity:.96;transform:rotate(-2deg) scale(1.06);
+  filter:drop-shadow(0 10px 16px rgba(0,0,0,.55))}
+.dragGhost.nearSnap{transform:rotate(0deg) scale(1.02)}
+.dragGhost.rejected{filter:drop-shadow(0 0 14px rgba(225,75,59,.9)) saturate(.4)}
+.dragGhost.selling{filter:drop-shadow(0 0 14px rgba(225,75,59,.8)) saturate(.55);opacity:.8}
+body.dragging{cursor:grabbing}
+body.dragging *{cursor:grabbing!important}
+
+/* snap burst FX */
+.snapRing{position:fixed;z-index:210;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+  border:3px solid var(--bulb);pointer-events:none;animation:snapring .55s ease-out forwards}
+@keyframes snapring{0%{transform:scale(.5);opacity:1}100%{transform:scale(3.1);opacity:0}}
+.snapSpark{position:fixed;z-index:210;width:7px;height:7px;margin:-3px 0 0 -3px;border-radius:2px;pointer-events:none;
+  animation:snapspark .6s ease-out forwards}
+@keyframes snapspark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
+
+/* ---------- center column: diamond + cpu dice + your dice ---------- */
+.bnbCenter{width:440px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+#bnbDiamondWrap{position:relative;width:200px;height:150px;display:flex;align-items:center;justify-content:center}
+#bnbDiamond{width:150px;aspect-ratio:1;overflow:visible}
+#bnbMarquee{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5}
+#bnbMarqueeText{font-weight:900;font-size:34px;letter-spacing:3px;color:var(--bulb);white-space:nowrap;
+  text-shadow:0 0 18px rgba(255,182,59,.8),0 0 4px #000;opacity:0;transform:scale(.7);text-align:center;line-height:.95}
+#bnbMarqueeText.show{animation:marq 1.5s ease}
+#bnbMarqueeText.out{color:var(--out);text-shadow:0 0 18px rgba(225,75,59,.8),0 0 4px #000}
+
+.bnbDiceLbl{font-size:12px;letter-spacing:2.5px;color:var(--chalk-dim);font-weight:900;margin-top:2px}
+.bnbDiceLbl b{color:var(--bulb)}
+#bnbCpuDice{width:430px;height:112px;display:flex;justify-content:center;gap:6px}
+#bnbCpuDice canvas{width:100%;height:100%;display:block}
+#bnbCpuDice .chips{display:flex;justify-content:center;gap:7px;padding-top:10px}
+#bnbCpuDice .chips i{font-style:normal;width:52px;height:52px;border-radius:9px;background:var(--chalk);color:var(--field);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:25px}
+#bnbCpuDice .chips i.k{background:#3A1613;color:var(--out)}
+#bnbCpuDice .chips i.f-POW{color:var(--clay)} #bnbCpuDice .chips i.f-EYE{color:#1C6E5C} #bnbCpuDice .chips i.f-RUN{color:#4C7A22}
+
+#bnbDiceRow{width:440px;height:175px;display:flex;justify-content:center;gap:8px;perspective:520px}
+#bnbDiceRow canvas{width:100%;height:100%;display:block}
+#bnbDiceRow .die{align-self:center}
+#bnbPreview{text-align:center;min-height:20px;font-size:14px;letter-spacing:1.5px;color:var(--chalk-dim);font-weight:700}
+#bnbPreview b{color:var(--bulb)}
+.bnbCtrl{display:flex;gap:8px;margin-top:4px;width:340px}
+.bnbCtrl .ctl{flex:1;padding:11px 0;font-size:18px}
+/* real buttons, matching the main game's ROLL / TAKE IT chrome */
+#bnbRollBtn{background:var(--bulb);color:var(--field);box-shadow:0 4px 0 var(--bulb-dim)}
+#bnbRollBtn:disabled{box-shadow:none;filter:saturate(.35)}
+#bnbBankBtn{background:none;color:var(--chalk);box-shadow:inset 0 0 0 2px var(--chalk-dim)}
+#bnbRollPips{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle}
+#bnbRollPips i{width:8px;height:8px;border-radius:50%;background:var(--field)}
+
+/* ---------- turn ownership: CPU half ---------- */
+#bnbTurnBanner{display:none;align-items:center;justify-content:center;gap:9px;width:340px;margin-top:4px;
+  padding:11px 0;font-size:15px;font-weight:900;letter-spacing:2px;color:var(--out);border-radius:8px;
+  background:rgba(225,75,59,.07);box-shadow:inset 0 0 0 2px rgba(225,75,59,.55)}
+#bnbTurnBanner i{width:9px;height:9px;border-radius:50%;background:var(--out);
+  box-shadow:0 0 8px rgba(225,75,59,.8);animation:turnblink 1s ease-in-out infinite}
+@keyframes turnblink{0%,100%{opacity:1}50%{opacity:.25}}
+#bnbScreen.cpuTurn #bnbTurnBanner{display:flex}
+#bnbScreen.cpuTurn .bnbCtrl{display:none}
+#bnbScreen.cpuTurn .bnbScenarios{opacity:.35;pointer-events:none}
+#bnbScreen.cpuTurn #bnbDiceRow{opacity:.3}
+#bnbScreen.cpuTurn #bnbYouLbl,#bnbScreen.cpuTurn #bnbPreview{opacity:.5}
+#bnbScreen.cpuTurn .bnbShop{opacity:.75}
+#bnbScreen.cpuTurn #bnbCpuLbl{color:var(--bulb)}
+#bnbScreen.cpuTurn #bnbCpuDice{background:rgba(255,182,59,.06);border-radius:10px;
+  box-shadow:inset 0 0 0 1.5px rgba(255,182,59,.28)}
+
+/* ---------- scenario row ---------- */
+.bnbScenarios{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px}
+.scenCard{position:relative;background:var(--felt2);border-radius:10px;padding:10px 12px 12px;text-align:center;
+  box-shadow:inset 0 0 0 1.5px #1E4A36;transition:box-shadow .18s, transform .12s, opacity .2s;
+  display:flex;flex-direction:column;gap:7px;min-height:128px;font-family:var(--disp);color:var(--chalk)}
+.scenCard .snm{font-size:18px;font-weight:900;letter-spacing:1.5px}
+.scenCard .req{display:flex;justify-content:center;gap:5px}
+.scenCard .req i{font-style:normal;width:28px;height:28px;border-radius:6px;background:#081A12;
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;box-shadow:inset 0 0 0 1px #2E4A3C}
+.scenCard .stx{font-size:15px;color:var(--chalk-dim);letter-spacing:.4px;line-height:1.32;font-weight:500}
+.scenCard.met{box-shadow:inset 0 0 0 2px var(--bulb),0 0 20px rgba(255,182,59,.35);cursor:pointer}
+.scenCard.met:hover{transform:translateY(-3px)}
+.scenCard.met .snm{color:var(--bulb)}
+.scenCard.met .playTag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--bulb);color:var(--field);
+  font-size:9px;font-weight:900;letter-spacing:1.5px;border-radius:8px;padding:2px 9px;animation:sockpulse .9s ease-in-out infinite}
+.scenCard.dimmed{opacity:.4}
+.req i.fc-BAT{color:var(--chalk)} .req i.fc-POW{color:var(--clay)} .req i.fc-EYE{color:var(--teal)}
+.req i.fc-RUN{color:var(--grass)} .req i.fc-K{color:var(--out)} .req i.fc-ANY{color:var(--bulb)}
+
+/* ---------- manager shop ---------- */
+.bnbShop{display:flex;align-items:center;gap:16px;margin-top:8px;min-height:92px;padding:8px 4px 2px}
+.bnbShopLbl{font-size:12px;letter-spacing:2.5px;color:var(--chalk-dim);font-weight:900;writing-mode:vertical-rl;
+  transform:rotate(180deg);text-align:center}
+.bnbShopRow{display:flex;gap:22px;flex:1;padding-left:6px}
+.bnbShopHint{font-size:11px;letter-spacing:1px;color:var(--chalk-dim);max-width:130px;text-align:right;margin-left:auto}
+
+/* ---------- interstitials ---------- */
+#bnbOverlay .rec{font-size:18px;letter-spacing:3px;color:var(--chalk-dim);font-weight:700}
+#bnbOverlay .rec b{color:var(--bulb)}
+.payLines{display:flex;flex-direction:column;gap:4px;font-size:15px;letter-spacing:1.5px;color:var(--chalk-dim)}
+.payLines b{color:var(--bulb)}
+.heroPickRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.heroPick{cursor:pointer;transition:transform .14s}
+.heroPick:hover{transform:translateY(-6px) scale(1.03)}
+.heroPick .bpCard{width:170px;height:238px}
+.heroPick .bpCard .nm{font-size:20px}
+.heroPick .bpCard .portrait .g{font-size:48px}
+.bnbGameList{display:flex;gap:6px;justify-content:center;margin:4px 0}
+.bnbGameList i{width:22px;height:22px;border-radius:4px;background:#081A12;box-shadow:inset 0 0 0 1px #2E4A3C;
+  font-style:normal;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;color:var(--chalk-dim)}
+.bnbGameList i.w{background:var(--bulb);color:var(--field)}
+.bnbGameList i.l{background:#3A1613;color:var(--out);box-shadow:inset 0 0 0 1px var(--out)}
+.bnbGameList i.next{box-shadow:inset 0 0 0 1.5px var(--bulb)}
+
+@media (max-width:1120px){
+  .bpCard{width:180px;height:252px}
+  .sockRail{width:132px}
+  .bnbCenter{width:380px}
+  #bnbDiceRow{width:380px}
+  #bnbCpuDice{width:380px}
+}
