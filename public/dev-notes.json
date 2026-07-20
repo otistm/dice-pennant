@@ -1,7 +1,12 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-20T20:27:21.999Z",
+  "updated": "2026-07-20T20:27:37.439Z",
   "notes": [
+    {
+      "sha": "ef41365",
+      "date": "2026-07-20T16:27:06-04:00",
+      "message": "Add 3D coin toss to decide who bats first in BnB."
+    },
     {
       "sha": "7692b50",
       "date": "2026-07-20T19:45:49Z",
