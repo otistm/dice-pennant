@@ -52,14 +52,20 @@ export function applyEquipment(faces, eqId) {
   return { faces: nf, idx };
 }
 
-/* ---------- perk: reroll economy ---------- */
-export function rerollsFor(perkId, outs) {
+/* ---------- perk: reroll economy ----------
+   state: { outs, bases, inning } — the situation the at-bat starts in. */
+export function rerollsFor(perkId, state) {
+  const s = state || {};
   let n = 1;
   if (perkId === 'reroll1') n += 1;
-  if (perkId === 'reroll2out' && outs >= 2) n += 1;
+  if (perkId === 'reroll2out' && (s.outs || 0) >= 2) n += 1;
+  if (perkId === 'rerollRISP' && s.bases && (s.bases[1] || s.bases[2])) n += 1;
+  if (perkId === 'rerollLate' && (s.inning || 1) >= 3) n += 2;
   return n;
 }
-export function kUnlocked(perkId) { return perkId === 'unlockK'; }
+export function kUnlocked(perkId) { return perkId === 'unlockK' || perkId === 'paidK'; }
+/* Sign Stealer: K dice are selectable but each K reroll costs $1. */
+export function kRerollCost(perkId) { return perkId === 'paidK' ? 1 : 0; }
 
 /* ---------- quirk hooks ---------- */
 /* freeswing: 2+ K is already a strikeout; hits get +1 base */
@@ -68,6 +74,18 @@ export function quirkHitBonus(quirkId, outcome) {
   if (quirkId !== 'freeswing' || !outcome || outcome.kind !== 'hit' || outcome.bases >= 4) return outcome;
   return { ...outcome, bases: outcome.bases + 1, label: outcome.label + ' +FREE SWING' };
 }
+/* Slump Buster: the first hit after one of your strikeouts gains +2 bases. */
+export function applySlump(quirkId, armed, outcome) {
+  if (quirkId !== 'slump' || !armed || !outcome || outcome.kind !== 'hit') {
+    return { outcome, used: false };
+  }
+  return {
+    outcome: { ...outcome, bases: Math.min(4, outcome.bases + 2), label: outcome.label + ' +SLUMP BUSTER' },
+    used: true,
+  };
+}
+/* Loaded Dice: each at-bat one die is rigged — 50/50 it lands POW or K. */
+export function loadedFace(roll) { return roll < 0.5 ? 'POW' : 'K'; }
 
 /* ---------- pre-effects then advance ---------- */
 export function runPre(bases, pre) {

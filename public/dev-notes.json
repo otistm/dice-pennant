@@ -1,7 +1,12 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-20T03:03:06.941Z",
+  "updated": "2026-07-20T19:45:35.446Z",
   "notes": [
+    {
+      "sha": "f1cd930",
+      "date": "2026-07-20T03:03:06Z",
+      "message": "chore: update dev notes [skip ci]"
+    },
     {
       "sha": "5c5d759",
       "date": "2026-07-19T22:11:20-04:00",

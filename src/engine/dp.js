@@ -63,7 +63,8 @@ export default (function () {
     const c = { BAT: 0, POW: 0, EYE: 0, RUN: 0, K: 0 };
     for (const f of faces) c[f]++;
     if (opts.coldEye) { c.K += c.EYE; c.EYE = 0; }
-    const extra = c.RUN >= 2 && !opts.noHustle; // hustle: +1 base on any hit
+    // hustle: +1 base on any hit (hustle1: a single RUN face is enough)
+    const extra = c.RUN >= (opts.hustle1 ? 1 : 2) && !opts.noHustle;
     if (c.POW >= 5) return { kind: 'hit', bases: 4, extra: false, label: 'MOONSHOT', bonus: 1 };
     if (c.POW === 4) return opts.wind
       ? { kind: 'hit', bases: 4, extra: false, label: 'MOONSHOT', bonus: 1 }

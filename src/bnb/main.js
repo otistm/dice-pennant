@@ -6,7 +6,8 @@ import {
 } from './data.js';
 import {
   countFaces, metScenarios, baseline, applyEquipment, rerollsFor, kUnlocked,
-  quirkStrikeK, quirkHitBonus, runPre, advance, greedyKeep, countK, scoreOutcome,
+  kRerollCost, quirkStrikeK, quirkHitBonus, applySlump, loadedFace,
+  runPre, advance, greedyKeep, countK, scoreOutcome,
 } from './engine.js';
 import { makeGearDraggable, makeSocketTileDraggable } from './snap.js';
 
@@ -84,7 +85,7 @@ const FRESHB = () => ({
   outs: 0, bases: [false, false, false],
   faces: [], sel: [false, false, false, false, false],
   rollsLeft: 1, rolled: false, busy: false, over: false,
-  rabbitUsed: false, leadoff: true, convNote: null,
+  rabbitUsed: false, leadoff: true, convNote: null, slumpArmed: false,
 });
 const isYourHalf = () => B && B.half === 'bottom';
 const total = side => B.score[side].reduce((s, v) => s + (v || 0), 0);
@@ -452,9 +453,10 @@ function renderBoard() {
     <div class="bnbGameList" style="justify-content:flex-start;margin-top:4px">${gameListHTML()}</div>`;
   $('bnbPitchTag').innerHTML = opp().mod
     ? `THEIR MOUND: <b>${{ burnlead: 'FLAMETHROWER', nohustle: 'JUNKBALLER', coldeye: 'ICEMAN' }[opp().mod]}</b> — ${
-        { burnlead: 'your leadoff batter each inning has one die burned to ✕',
-          nohustle: 'RUN faces grant no extra bases',
-          coldeye: 'with 2 outs your ◎ faces count as ✕' }[opp().mod]}` : '';
+        helmetOn() ? '<b style="color:var(--grass)">blocked by your Rally Helmet</b>'
+        : { burnlead: 'your leadoff batter each inning has one die burned to ✕',
+            nohustle: 'RUN faces grant no extra bases',
+            coldeye: 'with 2 outs your ◎ faces count as ✕' }[opp().mod]}` : '';
 }
 
 /* ---------- cards + sockets ---------- */
@@ -650,7 +652,8 @@ function renderRollPips() {
 function renderPreview() {
   const pv = $('bnbPreview');
   if (!B.rolled || !isYourHalf()) { pv.innerHTML = ''; return; }
-  const o = quirkHitBonus(quirkKey(), baseline(B.faces, pitchOpts()));
+  let o = quirkHitBonus(quirkKey(), baseline(B.faces, pitchOpts()));
+  o = applySlump(quirkKey(), B.slumpArmed, o).outcome;
   const k = countK(B.faces);
   const kLim = quirkStrikeK(quirkKey());
   const hint = B.rollsLeft > 0 ? ` <span style="color:var(--chalk-dim)">· tap dice to reroll</span>` : '';
@@ -666,10 +669,15 @@ function updateButtons() {
 }
 
 /* ---------- pitcher opts vs YOU ---------- */
+const helmetOn = () => { const eq = equippedGear('equipment'); return !!(eq && eq.guard); };
 function pitchOpts() {
   const o = {};
-  if (opp().mod === 'nohustle') o.noHustle = true;
-  if (opp().mod === 'coldeye' && B.outs === 2) o.coldEye = true;
+  if (!helmetOn()) {
+    if (opp().mod === 'nohustle') o.noHustle = true;
+    if (opp().mod === 'coldeye' && B.outs === 2) o.coldEye = true;
+  }
+  const eq = equippedGear('equipment');
+  if (eq && eq.hustle1) o.hustle1 = true;
   return o;
 }
 
@@ -677,7 +685,7 @@ function pitchOpts() {
 function startAtBat() {
   B.faces = [null, null, null, null, null];
   B.sel = [false, false, false, false, false];
-  B.rollsLeft = rerollsFor(perkKey(), B.outs);
+  B.rollsLeft = rerollsFor(perkKey(), { outs: B.outs, bases: B.bases, inning: B.inning });
   B.rolled = false;
   resetOverrides(youView, you3D, youOvr, heroDieDef());
   $('bnbYouLbl').innerHTML = `NOW BATTING: <b>${hero().name.toUpperCase()}</b>`;
@@ -699,16 +707,32 @@ async function onRoll() {
   spinning.forEach((s, i) => {
     if (s && youOvr.has(i)) { if (you3D) youView.setDieFaces(i, hero().faces); youOvr.delete(i); }
   });
+  // Sign Stealer: pay the fixer $1 per ✕ die being rerolled
+  if (!first) {
+    const kCost = kRerollCost(perkKey()) * B.faces.filter((f, i) => spinning[i] && f === 'K').length;
+    if (kCost) pay(-kCost, 'SIGN STEALER');
+  }
   B.faces = B.faces.map((f, i) => spinning[i] ? hero().faces[Math.floor(rng() * 6)] : f);
   let notes = [];
   if (first) {
     if (opp().mod === 'burnlead' && B.leadoff) {
-      B.faces[Math.floor(rng() * 5)] = 'K';
       B.leadoff = false;
-      notes.push(['HIGH HEAT!', true]);
+      if (helmetOn()) {
+        notes.push(['RALLY HELMET SHRUGS OFF THE HEAT!', false]);
+      } else {
+        B.faces[Math.floor(rng() * 5)] = 'K';
+        notes.push(['HIGH HEAT!', true]);
+      }
+    }
+    if (quirkKey() === 'loaded') {
+      const li = Math.floor(rng() * 5);
+      const lf = loadedFace(rng());
+      B.faces[li] = lf;
+      overrideDie(youView, you3D, youOvr, li, lf);
+      notes.push([lf === 'POW' ? 'LOADED DICE: ✦!' : 'LOADED DICE: ✕…', lf === 'K']);
     }
     const eq = equippedGear('equipment');
-    if (eq) {
+    if (eq && eq.conv) {
       const r = applyEquipment(B.faces, eq.id);
       if (r.idx >= 0) {
         B.faces = r.faces;
@@ -796,6 +820,11 @@ function onDieTap(i) {
   if (!canInteract() || !B.rolled || B.rollsLeft <= 0) return;
   const zen = kUnlocked(perkKey());
   if (B.faces[i] === 'K' && !zen) return;
+  const kFee = kRerollCost(perkKey());
+  if (kFee && B.faces[i] === 'K' && !B.sel[i]) {
+    const kSel = B.faces.filter((f, j) => B.sel[j] && f === 'K').length;
+    if (SEASON.budget < (kSel + 1) * kFee) { marquee('NO BUDGET FOR THE FIXER!', true); return; }
+  }
   B.sel[i] = !B.sel[i];
   sfx.hold();
   renderDice(true);
@@ -820,13 +849,21 @@ async function settleYou(outcome, scen) {
   B.busy = true;
   updateButtons();
   renderDice(false); renderScenarios();
+  // Slump Buster: first hit after one of your strikeouts gains +2 bases
+  {
+    const sl = applySlump(quirkKey(), B.slumpArmed, outcome);
+    if (sl.used) { outcome = sl.outcome; B.slumpArmed = false; }
+  }
   let runsThisAB = 0;
   if (outcome.kind === 'out') {
     B.outs++;
     sfx.out();
     animateOut(gen);
     marquee(outcome.label, true);
-    if (quirkKey() === 'showboat' && outcome.label === 'STRUCK OUT') pay(-1, 'SHOWBOAT');
+    if (outcome.label === 'STRUCK OUT') {
+      if (quirkKey() === 'showboat') pay(-1, 'SHOWBOAT');
+      if (quirkKey() === 'slump') B.slumpArmed = true;
+    }
     renderBoard();
   } else {
     // scenario pre-effects fire first (steal / runners up)
@@ -995,6 +1032,7 @@ async function cpuAtBat(gen) {
     sfx.out();
     animateOut(gen);
     marquee(outcome.label, true);
+    if (quirkKey() === 'heckler' && outcome.label === 'STRUCK OUT') pay(1, 'HECKLER');
   } else {
     let runs = 0;
     if (outcome.pre) {
