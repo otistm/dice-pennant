@@ -1,7 +1,17 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-20T00:54:05.096Z",
+  "updated": "2026-07-20T03:03:06.941Z",
   "notes": [
+    {
+      "sha": "5c5d759",
+      "date": "2026-07-19T22:11:20-04:00",
+      "message": "Add Bats-n-Bases desktop PvE mode with gear snapping, shop, and 10-game season"
+    },
+    {
+      "sha": "4f40294",
+      "date": "2026-07-08T23:44:40Z",
+      "message": "chore: update dev notes [skip ci]"
+    },
     {
       "sha": "f3677ed",
       "date": "2026-07-08T19:44:21-04:00",
