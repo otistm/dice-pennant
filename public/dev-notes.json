@@ -1,7 +1,17 @@
 {
   "repo": "otistm/dice-pennant",
-  "updated": "2026-07-20T20:40:32.160Z",
+  "updated": "2026-07-20T21:23:15.728Z",
   "notes": [
+    {
+      "sha": "2e81eab",
+      "date": "2026-07-20T17:23:00-04:00",
+      "message": "Add perfect-season legend unlocks for Bats-n-Bases."
+    },
+    {
+      "sha": "74aad57",
+      "date": "2026-07-20T20:40:32Z",
+      "message": "chore: update dev notes [skip ci]"
+    },
     {
       "sha": "5bdeae9",
       "date": "2026-07-20T16:40:18-04:00",
