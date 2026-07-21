@@ -2,12 +2,12 @@
 import { createDiceView } from '../dice3d/index.js';
 import {
   GLYPH, FLABEL, SLOTS, SLOT_TINT, HEROES, GEAR, ECON, SEASON_LEN,
-  OPPONENTS, cpuScenarios,
+  OPPONENTS, CPU_BUDGET, cpuScenarios,
 } from './data.js';
 import {
   countFaces, metScenarios, baseline, applyEquipment, rerollsFor, kUnlocked,
-  kRerollCost, quirkStrikeK, quirkHitBonus, applySlump, loadedFace,
-  runPre, advance, greedyKeep, countK, scoreOutcome,
+  kRerollCost, quirkStrikeK, quirkHitBonus, quirkUnlocksK, applySlump, loadedFace,
+  loadedIndex, runPre, advance, greedyKeep, countK, scoreOutcome, cpuLoadout,
 } from './engine.js';
 import { makeGearDraggable, makeSocketTileDraggable } from './snap.js';
 import { coinToss } from './coin.js';
@@ -91,22 +91,33 @@ function grantPerfect() {
   return null;
 }
 
-function restockShop() {
-  const owned = SEASON ? Object.values(SEASON.equip).filter(Boolean) : [];
-  const pool = Object.keys(GEAR).filter(id => !owned.includes(id));
-  const out = [];
-  while (out.length < ECON.shopSize && pool.length) {
-    out.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+/** Fill SEASON.stock up to shopSize with gear that isn't equipped or already listed. */
+function fillShop() {
+  if (!SEASON) return;
+  const owned = Object.values(SEASON.equip).filter(Boolean);
+  const listed = new Set(SEASON.stock || []);
+  const pool = Object.keys(GEAR).filter(id => !owned.includes(id) && !listed.has(id));
+  SEASON.stock = SEASON.stock || [];
+  while (SEASON.stock.length < ECON.shopSize && pool.length) {
+    const id = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+    SEASON.stock.push(id);
+    listed.add(id);
   }
-  return out;
+}
+function restockShop() {
+  if (!SEASON) return [];
+  SEASON.stock = [];
+  fillShop();
+  return SEASON.stock;
 }
 function newSeason(heroId) {
   SEASON = {
     heroId, gameIdx: 0, results: [],
     budget: ECON.startBudget,
     equip: { equipment: null, perk: null, quirk: null },
+    stock: [],
   };
-  SEASON.stock = restockShop();
+  fillShop();
   saveSeason();
 }
 const hero = () => HEROES.find(h => h.id === SEASON.heroId) || HEROES[0];
@@ -126,6 +137,9 @@ const FRESHB = () => ({
   rollsLeft: 1, rolled: false, busy: false, over: false,
   rabbitUsed: false, leadoff: true, convNote: null, slumpArmed: false,
   youFirst: false, // coin toss: true = you bat in the top half (away team)
+  runPayEarned: 0, // $ earned from runs this game (capped by ECON.perRunCap)
+  cpuGear: { equipment: null, perk: null, quirk: null }, // their per-game loadout
+  cpuRabbitUsed: false, cpuSlumpArmed: false,
 });
 const isYourHalf = () => B && B.half === (B.youFirst ? 'top' : 'bottom');
 const youSide = () => (B.youFirst ? 'away' : 'home');
@@ -176,7 +190,10 @@ function svgEl(tag, attrs) {
 function animateRunners(moves, gen, leg = 240) {
   if (!moves || !moves.length) return Promise.resolve();
   const svg = $('bnbDiamond');
+  const pads = ['bnbPad1', 'bnbPad2', 'bnbPad3'];
   return Promise.all(moves.map((mv, idx) => new Promise(res => {
+    // Clear the pad this runner is leaving — don't wipe the diamond before the play
+    if (mv.from >= 1 && mv.from <= 3) $(pads[mv.from - 1])?.classList.remove('occ');
     const legs = [];
     for (let p = mv.from; p < mv.to; p++) legs.push([BASE_XY[p], BASE_XY[p + 1]]);
     if (!legs.length) return res();
@@ -584,9 +601,8 @@ function renderCards() {
       ${g ? gearTileHTML(g, 'you') : ''}
     </div>`;
   }).join('')}</div>${cardHTML('you')}`;
-  // CPU (gear pre-snapped, mirrored)
-  const o = opp();
-  const cpuEquip = { equipment: o.gear.eq, perk: o.gear.perk, quirk: o.gear.quirk };
+  // CPU (their shopped loadout snapped on, mirrored)
+  const cpuEquip = (B && B.cpuGear) || {};
   const cAsm = $('bnbCpuAsm');
   cAsm.innerHTML = `${cardHTML('cpu')}<div class="sockRail">${SLOTS.map(s => {
     const gid = cpuEquip[s];
@@ -605,8 +621,10 @@ function renderCards() {
         const g = GEAR[tile.dataset.gear];
         SEASON.equip[g.type] = null;
         pay(Math.floor(g.cost / 2), 'SOLD');
+        fillShop(); // unequipped gear can reappear; top up if shelf was short
         saveSeason();
         renderCards();
+        renderShop();
         if (B) renderBoard();
       },
     });
@@ -641,9 +659,11 @@ function renderShop() {
         if (old) SEASON.budget += Math.floor(old.cost / 2);
         SEASON.equip[slot] = g.id;
         SEASON.stock = SEASON.stock.filter(x => x !== g.id);
+        fillShop(); // always keep the shelf at shopSize
         saveSeason();
         renderBudget(true);
         renderCards();
+        renderShop();
         if (B) renderBoard();
         requestAnimationFrame(() => {
           const t = document.querySelector(`#bnbYouAsm .socket[data-slot="${slot}"] .gearTile`);
@@ -792,7 +812,7 @@ async function onRoll() {
   const gen = BGEN;
   sfx.roll();
   const first = !B.rolled;
-  const zen = kUnlocked(perkKey());
+  const zen = kUnlocked(perkKey()) || quirkUnlocksK(quirkKey());
   const spinning = B.faces.map((f, i) => first ? true : (B.sel[i] && (f !== 'K' || zen)));
   // reset overrides on any die that spins again
   spinning.forEach((s, i) => {
@@ -816,7 +836,7 @@ async function onRoll() {
       }
     }
     if (quirkKey() === 'loaded') {
-      const li = Math.floor(rng() * 5);
+      const li = loadedIndex(B.faces);
       const lf = loadedFace(rng());
       B.faces[li] = lf;
       overrideDie(youView, you3D, youOvr, li, lf);
@@ -909,7 +929,7 @@ function afterRoll() {
 
 function onDieTap(i) {
   if (!canInteract() || !B.rolled || B.rollsLeft <= 0) return;
-  const zen = kUnlocked(perkKey());
+  const zen = kUnlocked(perkKey()) || quirkUnlocksK(quirkKey());
   if (B.faces[i] === 'K' && !zen) return;
   const kFee = kRerollCost(perkKey());
   if (kFee && B.faces[i] === 'K' && !B.sel[i]) {
@@ -962,22 +982,22 @@ async function settleYou(outcome, scen) {
       const pr = runPre(B.bases, outcome.pre);
       B.bases = pr.bases;
       runsThisAB += pr.runs;
-      ['bnbPad1', 'bnbPad2', 'bnbPad3'].forEach(p => $(p).classList.remove('occ'));
       await animateRunners(pr.moves, gen, 200);
       if (gen !== BGEN) return;
+      renderBoard();
     }
     const r = advance(B.bases, outcome);
     B.bases = r.bases;
+    // Plate crossings only; doubleRuns multiplies those — never awards flat "4 for a HR"
     let runs = r.runs + runsThisAB;
     if (outcome.doubleRuns && runs) runs *= 2;
     runsThisAB = runs;
     addRuns(youSide(), runs);
     if (outcome.bases === 4) sfx.big(); else if (outcome.kind === 'walk') sfx.walk(); else sfx.hit();
     marquee(outcome.label + (runs ? ` · ${runs} IN!` : ''));
-    ['bnbPad1', 'bnbPad2', 'bnbPad3'].forEach(p => $(p).classList.remove('occ'));
     animateRunners(r.moves, gen).then(() => { if (gen === BGEN) renderBoard(); });
-    if (runs) pay(runs * ECON.perRun, 'RUNS');
-    if (quirkKey() === 'showboat' && outcome.bases === 4) pay(3, 'SHOWBOAT');
+    payRuns(runs);
+    if (quirkKey() === 'showboat' && outcome.bases === 4) pay(2, 'SHOWBOAT');
     if (outcome.cash) pay(outcome.cash, scen ? scen.name : '');
   }
   renderPreview();
@@ -993,6 +1013,16 @@ function addRuns(side, n) {
   if (!n) return;
   const i = B.inning - 1;
   B.score[side][i] = (B.score[side][i] || 0) + n;
+}
+/** Pay for runs scored, capped per game so big innings don't snowball the shop. */
+function payRuns(runs) {
+  if (!runs || !ECON.perRun) return;
+  const cap = ECON.perRunCap != null ? ECON.perRunCap : Infinity;
+  const room = Math.max(0, cap - (B.runPayEarned || 0));
+  const amt = Math.min(runs * ECON.perRun, room);
+  if (!amt) return;
+  B.runPayEarned = (B.runPayEarned || 0) + amt;
+  pay(amt, 'RUNS');
 }
 
 /* Whoever bats last (home) can walk it off — the CPU too, when you bat first. */
@@ -1068,6 +1098,12 @@ async function cpuHalf() {
 async function cpuAtBat(gen) {
   const o = opp();
   const die = oppDieDef();
+  const cg = B.cpuGear || {};
+  const cpuPerk = cg.perk ? GEAR[cg.perk].perk : null;
+  const cpuQuirk = cg.quirk ? GEAR[cg.quirk].quirk : null;
+  const cpuOpts = cg.equipment && GEAR[cg.equipment].hustle1 ? { hustle1: true } : {};
+  const kLim = quirkStrikeK(cpuQuirk);
+  const zen = cpuPerk === 'unlockK' || quirkUnlocksK(cpuQuirk);
   resetOverrides(cpuView, cpu3D, cpuOvr, die);
   $('bnbCpuLbl').innerHTML = `CPU AT THE PLATE: <b>${o.hero.name.toUpperCase()}</b>`;
   renderCpuDiceIdle(true);
@@ -1075,52 +1111,77 @@ async function cpuAtBat(gen) {
   if (gen !== BGEN) return;
   sfx.roll();
   let faces = [0, 1, 2, 3, 4].map(() => o.faces[Math.floor(rng() * 6)]);
+  // loaded dice: their worst die is rigged 50/50
+  if (cpuQuirk === 'loaded') {
+    const i = loadedIndex(faces);
+    faces[i] = loadedFace(rng());
+    overrideDie(cpuView, cpu3D, cpuOvr, i, faces[i]);
+  }
   // their equipment converts a face on the first roll
-  if (o.gear.eq) {
-    const r = applyEquipment(faces, o.gear.eq);
+  if (cg.equipment && GEAR[cg.equipment].conv) {
+    const r = applyEquipment(faces, cg.equipment);
     if (r.idx >= 0) { faces = r.faces; overrideDie(cpuView, cpu3D, cpuOvr, r.idx, faces[r.idx]); }
   }
   await cpuRollAnim(faces, [true, true, true, true, true], gen);
   if (gen !== BGEN) return;
-  let rerolls = o.gear.perk === 'FILM' ? 2 : 1;
+  let rerolls = rerollsFor(cpuPerk, { outs: B.outs, bases: B.bases, inning: B.inning });
   const scens = cpuScenarios(o);
   const bestNow = f => {
-    const opts = [baseline(f, {}), ...metScenarios(scens, f).map(s => s.eff)];
+    const opts = [baseline(f, cpuOpts), ...metScenarios(scens, f).map(s => s.eff)];
     let best = null, bv = -Infinity;
     for (const x of opts) { const v = scoreOutcome(x, B.bases); if (v > bv) { bv = v; best = x; } }
     return { best, bv };
   };
-  while (rerolls > 0 && countK(faces) < 3) {
-    const { bv } = bestNow(faces);
-    if (bv >= 2) break; // happy with what's showing
-    const keep = greedyKeep(faces);
-    const sel = faces.map((f, i) => f !== 'K' && !keep[i]);
-    if (!sel.some(Boolean)) break;
-    await sleep(420 + Math.random() * 280);
-    if (gen !== BGEN) return;
+  const rerollFaces = async sel => {
     sel.forEach((s, i) => {
       if (s && cpuOvr.has(i)) { if (cpu3D) cpuView.setDieFaces(i, o.faces); cpuOvr.delete(i); }
     });
     faces = faces.map((f, i) => sel[i] ? o.faces[Math.floor(rng() * 6)] : f);
     await cpuRollAnim(faces, sel, gen);
+  };
+  while (rerolls > 0 && countK(faces) < kLim) {
+    const { bv } = bestNow(faces);
+    if (bv >= 2) break; // happy with what's showing
+    const keep = greedyKeep(faces);
+    const sel = faces.map((f, i) => !keep[i] && (f !== 'K' || zen));
+    if (!sel.some(Boolean)) break;
+    await sleep(420 + Math.random() * 280);
+    if (gen !== BGEN) return;
+    await rerollFaces(sel);
     if (gen !== BGEN) return;
     rerolls--;
+  }
+  // rabbit's foot: one strikeout roll per game is forgiven
+  if (countK(faces) >= kLim && cpuQuirk === 'rabbit' && !B.cpuRabbitUsed) {
+    B.cpuRabbitUsed = true;
+    marquee("THEIR RABBIT'S FOOT!", true);
+    await sleep(500);
+    if (gen !== BGEN) return;
+    sfx.roll();
+    await rerollFaces(faces.map(f => f === 'K'));
+    if (gen !== BGEN) return;
   }
   await sleep(350);
   if (gen !== BGEN) return;
   // resolve
   let outcome;
   let viaScen = null;
-  if (countK(faces) >= 3) outcome = { kind: 'out', bases: 0, label: 'STRUCK OUT' };
-  else {
-    const opts = [{ eff: baseline(faces, {}), s: null }, ...metScenarios(scens, faces).map(s => ({ eff: s.eff, s }))];
+  if (countK(faces) >= kLim) {
+    outcome = { kind: 'out', bases: 0, label: 'STRUCK OUT' };
+  } else {
+    const opts = [{ eff: baseline(faces, cpuOpts), s: null }, ...metScenarios(scens, faces).map(s => ({ eff: s.eff, s }))];
     let bv = -Infinity;
     for (const x of opts) {
       const v = scoreOutcome(x.eff, B.bases);
       if (v > bv) { bv = v; outcome = x.eff; viaScen = x.s; }
     }
+    outcome = quirkHitBonus(cpuQuirk, outcome);
+    const sb = applySlump(cpuQuirk, B.cpuSlumpArmed, outcome);
+    if (sb.used) B.cpuSlumpArmed = false;
+    outcome = sb.outcome;
   }
   if (outcome.kind === 'out') {
+    if (cpuQuirk === 'slump' && outcome.label === 'STRUCK OUT') B.cpuSlumpArmed = true;
     B.outs++;
     sfx.out();
     animateOut(gen);
@@ -1131,9 +1192,9 @@ async function cpuAtBat(gen) {
     if (outcome.pre) {
       const pr = runPre(B.bases, outcome.pre);
       B.bases = pr.bases; runs += pr.runs;
-      ['bnbPad1', 'bnbPad2', 'bnbPad3'].forEach(p => $(p).classList.remove('occ'));
       await animateRunners(pr.moves, gen, 180);
       if (gen !== BGEN) return;
+      renderBoard();
     }
     const r = advance(B.bases, outcome);
     B.bases = r.bases;
@@ -1141,7 +1202,6 @@ async function cpuAtBat(gen) {
     addRuns(cpuSide(), runs);
     if (outcome.bases === 4) sfx.big(); else if (outcome.kind === 'walk') sfx.walk(); else sfx.hit();
     marquee((viaScen ? viaScen.name + ' — ' : '') + outcome.label + (runs ? ` · ${runs} IN` : ''), false);
-    ['bnbPad1', 'bnbPad2', 'bnbPad3'].forEach(p => $(p).classList.remove('occ'));
     animateRunners(r.moves, gen, 170).then(() => { if (gen === BGEN) renderBoard(); });
   }
   renderBoard();
@@ -1154,6 +1214,8 @@ async function startBnbGame() {
   const gen = BGEN;
   B = FRESHB();
   B.youFirst = rng() < 0.5; // decided now; the coin toss reveals it
+  // the CPU shops for its own loadout — budget grows over the season
+  B.cpuGear = cpuLoadout(opp(), CPU_BUDGET[Math.min(SEASON.gameIdx, CPU_BUDGET.length - 1)], rng);
   // Hide the board and flip first — dice WebGL is created AFTER so it doesn't
   // fight the coin for a context or composite over the overlay.
   $('bnbScreen').classList.add('tossing');

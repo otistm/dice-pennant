@@ -65,9 +65,11 @@ export default (function () {
     if (opts.coldEye) { c.K += c.EYE; c.EYE = 0; }
     // hustle: +1 base on any hit (hustle1: a single RUN face is enough)
     const extra = c.RUN >= (opts.hustle1 ? 1 : 2) && !opts.noHustle;
-    if (c.POW >= 5) return { kind: 'hit', bases: 4, extra: false, label: 'MOONSHOT', bonus: 1 };
+    // Home runs: bases:4 means the batter circles the bases — runs scored equal
+    // plate crossings only (1 with bases empty, 4 only when loaded). No phantom bonuses.
+    if (c.POW >= 5) return { kind: 'hit', bases: 4, extra: false, label: 'MOONSHOT' };
     if (c.POW === 4) return opts.wind
-      ? { kind: 'hit', bases: 4, extra: false, label: 'MOONSHOT', bonus: 1 }
+      ? { kind: 'hit', bases: 4, extra: false, label: 'MOONSHOT' }
       : { kind: 'hit', bases: 4, extra: false, label: 'HOME RUN' };
     if (c.POW === 3) return { kind: 'hit', bases: 2, extra, label: 'OFF THE WALL' };
     if (c.BAT >= 5)  return { kind: 'hit', bases: 3, extra, label: 'TRIPLE' };
@@ -108,10 +110,10 @@ export default (function () {
     for (const pos of runners) {
       const to = pos + adv;
       moves.push({ from: pos, to: Math.min(to, 4) });
+      // One run per player who reaches home — never "bases" as a flat run award
       if (to >= 4) runs++;
       else nb[to - 1] = true;
     }
-    if (outcome.bonus) runs += outcome.bonus; // moonshot crowd bonus
     return { bases: nb, runs, moves };
   }
 

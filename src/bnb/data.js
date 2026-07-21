@@ -16,28 +16,29 @@ export const SLOT_TINT_DIM = { equipment: '#28513A', perk: '#274058', quirk: '#5
    Scenario shape:
      req  — face counts that must be met (uniq: N = N distinct non-K faces)
      eff  — outcome to execute:
-            kind 'hit'|'walk', bases, extra (hustle +1), bonus (bonus runs),
+            kind 'hit'|'walk', bases (hit type: 1–4), extra (hustle +1 base),
             pre 'advance1'|'steal' (runners move before the swing resolves),
-            cash N (manager pays budget), doubleRuns
+            cash N (manager pays budget), doubleRuns (plate-crossing runs ×2)
+            Runs scored = players who touch home only (solo HR = 1, grand slam = 4).
 */
 export const HEROES = [
   {
     id: 'DIESEL', name: 'Big Diesel', pos: 'DH', num: 44,
     blurb: 'Swings for the parking lot.',
-    faces: ['POW', 'POW', 'POW', 'BAT', 'BAT', 'K'],
+    faces: ['POW', 'POW', 'BAT', 'BAT', 'RUN', 'K'],
     scenarios: [
       { id: 'D1', name: 'TAPE MEASURE', req: { POW: 5 },
-        eff: { kind: 'hit', bases: 4, bonus: 2, label: 'TAPE MEASURE BLAST' },
-        text: 'Moonshot worth 2 bonus runs.' },
+        eff: { kind: 'hit', bases: 4, cash: 2, label: 'TAPE MEASURE BLAST' },
+        text: 'Gone. Manager tips you $2 for the show.' },
       { id: 'D2', name: 'WRECKING BALL', req: { POW: 3, BAT: 2 },
         eff: { kind: 'hit', bases: 3, label: 'WRECKING BALL' },
         text: 'A screaming triple.' },
-      { id: 'D3', name: 'DENT THE WALL', req: { POW: 2, BAT: 2 },
-        eff: { kind: 'hit', bases: 2, bonus: 1, label: 'DENTED THE WALL' },
-        text: 'Double so loud it counts an extra run.' },
-      { id: 'D4', name: 'INTIMIDATE', req: { POW: 2, K: 2 },
-        eff: { kind: 'walk', pre: 'steal', label: 'PITCHER RATTLED' },
-        text: 'Walk, and your lead runner steals a base.' },
+      { id: 'D3', name: 'DENT THE WALL', req: { POW: 2, BAT: 3 },
+        eff: { kind: 'hit', bases: 2, label: 'DENTED THE WALL' },
+        text: 'A no-doubt double off the scoreboard.' },
+      { id: 'D4', name: 'INTIMIDATE', req: { POW: 2, BAT: 1, K: 2 },
+        eff: { kind: 'walk', label: 'PITCHER RATTLED' },
+        text: 'Down to his last strike, the pitcher blinks. Walk.' },
     ],
   },
   {
@@ -48,9 +49,9 @@ export const HEROES = [
       { id: 'W1', name: 'INSIDE THE PARK', req: { RUN: 5 },
         eff: { kind: 'hit', bases: 4, label: 'INSIDE-THE-PARK HR' },
         text: 'Never stopped running. Round-tripper!' },
-      { id: 'W2', name: 'JET STREAM', req: { RUN: 4 },
+      { id: 'W2', name: 'JET STREAM', req: { RUN: 3, EYE: 1 },
         eff: { kind: 'hit', bases: 2, extra: true, label: 'STRETCH DOUBLE' },
-        text: 'Double stretched an extra base.' },
+        text: 'Read the gap, never slowed — hustle double.' },
       { id: 'W3', name: 'BUNT AND RUN', req: { BAT: 2, RUN: 2 },
         eff: { kind: 'hit', bases: 1, pre: 'advance1', label: 'BUNT AND RUN' },
         text: 'Runners move up 1, then a single drops in.' },
@@ -64,18 +65,18 @@ export const HEROES = [
     blurb: 'Reads the pitcher like a cheap paperback.',
     faces: ['EYE', 'EYE', 'EYE', 'BAT', 'POW', 'K'],
     scenarios: [
-      { id: 'P1', name: 'SAW IT COMING', req: { EYE: 2, POW: 2 },
+      { id: 'P1', name: 'SAW IT COMING', req: { EYE: 3, POW: 2 },
         eff: { kind: 'hit', bases: 4, label: 'SAW IT COMING' },
         text: 'Sat on the fastball. Home run.' },
-      { id: 'P2', name: 'THREAD THE NEEDLE', req: { EYE: 2, BAT: 1, POW: 1 },
+      { id: 'P2', name: 'THREAD THE NEEDLE', req: { EYE: 2, BAT: 2, POW: 1 },
         eff: { kind: 'hit', bases: 3, label: 'THREADED THE NEEDLE' },
         text: 'Placed where nobody stands. Triple.' },
       { id: 'P3', name: 'PAINT READER', req: { EYE: 2, BAT: 2 },
         eff: { kind: 'hit', bases: 2, label: 'LINED TO THE GAP' },
         text: 'A well-read double.' },
       { id: 'P4', name: 'MIND GAMES', req: { EYE: 4 },
-        eff: { kind: 'walk', pre: 'advance1', cash: 1, label: 'FORCED THE BALK' },
-        text: 'Walk, runners move up 1, manager pays $1.' },
+        eff: { kind: 'walk', pre: 'advance1', label: 'FORCED THE BALK' },
+        text: 'Walk, and all runners move up 1.' },
     ],
   },
   {
@@ -100,16 +101,16 @@ export const HEROES = [
   /* ---- Locked legends (unlock via perfect 10–0 seasons, in tier order) ---- */
   {
     id: 'NATURAL', name: 'The Natural', pos: 'SS', num: 6, lockTier: 1,
-    blurb: 'Never whiffs. Every tool, every night.',
-    faces: ['BAT', 'BAT', 'POW', 'EYE', 'RUN', 'RUN'],
+    blurb: 'Almost never whiffs. Every tool, every night.',
+    faces: ['BAT', 'BAT', 'EYE', 'RUN', 'RUN', 'K'],
     scenarios: [
-      { id: 'N1', name: 'EVERY TOOL', req: { uniq: 4 },
-        eff: { kind: 'hit', bases: 2, extra: true, label: 'EVERY TOOL' },
-        text: '4 different faces: hustle double.' },
-      { id: 'N2', name: 'TURBO TRIPLE', req: { RUN: 3, BAT: 2 },
+      { id: 'N1', name: 'EVERY TOOL', req: { uniq: 3, RUN: 2 },
+        eff: { kind: 'hit', bases: 2, label: 'EVERY TOOL' },
+        text: '3 different faces + 2 »: a gap double.' },
+      { id: 'N2', name: 'TURBO TRIPLE', req: { RUN: 3, BAT: 1 },
         eff: { kind: 'hit', bases: 3, label: 'TURBO TRIPLE' },
         text: 'Contact and wheels — standing at third.' },
-      { id: 'N3', name: 'PURE STROKE', req: { BAT: 4 },
+      { id: 'N3', name: 'PURE STROKE', req: { BAT: 3, EYE: 1 },
         eff: { kind: 'hit', bases: 1, doubleRuns: true, label: 'PURE STROKE' },
         text: 'Single — runs scored count twice.' },
       { id: 'N4', name: 'PATIENCE', req: { EYE: 2, RUN: 2 },
@@ -120,17 +121,17 @@ export const HEROES = [
   {
     id: 'KRAKEN', name: 'Kraken', pos: '1B', num: 99, lockTier: 2,
     blurb: 'Moon or bust. The dugout holds its breath.',
-    faces: ['POW', 'POW', 'POW', 'POW', 'K', 'K'],
+    faces: ['POW', 'POW', 'POW', 'BAT', 'K', 'K'],
     scenarios: [
       { id: 'K1', name: 'KRAKEN RISES', req: { POW: 5 },
-        eff: { kind: 'hit', bases: 4, bonus: 2, label: 'KRAKEN RISES' },
-        text: 'Moonshot worth 2 bonus runs.' },
-      { id: 'K2', name: 'TIDAL WAVE', req: { POW: 4 },
+        eff: { kind: 'hit', bases: 4, cash: 2, label: 'KRAKEN RISES' },
+        text: 'Gone. The crowd rains $2 on the field.' },
+      { id: 'K2', name: 'TIDAL WAVE', req: { POW: 3, K: 2 },
         eff: { kind: 'hit', bases: 4, label: 'TIDAL WAVE' },
-        text: 'Gone. Just gone.' },
-      { id: 'K3', name: 'OFF THE WALL', req: { POW: 3 },
-        eff: { kind: 'hit', bases: 2, label: 'RATTLED THE WALL' },
-        text: 'A screaming double off the fence.' },
+        text: 'Two strikes down — and it still left the park.' },
+      { id: 'K3', name: 'OFF THE WALL', req: { POW: 3, K: 1 },
+        eff: { kind: 'hit', bases: 2, extra: true, label: 'RATTLED THE WALL' },
+        text: 'Off the fence — and he lumbers into third.' },
       { id: 'K4', name: 'FEAR WALK', req: { POW: 2, K: 2 },
         eff: { kind: 'walk', pre: 'steal', label: 'PITCHER SCARED' },
         text: 'They won\u2019t throw strikes. Walk + steal.' },
@@ -141,16 +142,16 @@ export const HEROES = [
     blurb: 'Now you see the ball. Now you don\u2019t.',
     faces: ['EYE', 'EYE', 'RUN', 'RUN', 'BAT', 'K'],
     scenarios: [
-      { id: 'M1', name: 'VANISHING ACT', req: { EYE: 3, RUN: 2 },
+      { id: 'M1', name: 'VANISHING ACT', req: { EYE: 3, RUN: 1 },
         eff: { kind: 'walk', pre: 'advance1', cash: 2, label: 'VANISHING ACT' },
         text: 'Walk, runners up 1, manager tips $2.' },
       { id: 'M2', name: 'HAT TRICK', req: { RUN: 3, BAT: 1 },
         eff: { kind: 'hit', bases: 1, doubleRuns: true, label: 'HAT TRICK' },
         text: 'Single — runs scored count twice.' },
-      { id: 'M3', name: 'SWITCHEROO', req: { EYE: 2, BAT: 2 },
+      { id: 'M3', name: 'SWITCHEROO', req: { EYE: 2, BAT: 1, RUN: 1 },
         eff: { kind: 'hit', bases: 2, pre: 'steal', label: 'SWITCHEROO' },
         text: 'Lead runner steals, then a double drops.' },
-      { id: 'M4', name: 'PULL THE RABBIT', req: { EYE: 2, RUN: 2, BAT: 1 },
+      { id: 'M4', name: 'PULL THE RABBIT', req: { EYE: 2, RUN: 2 },
         eff: { kind: 'hit', bases: 3, label: 'PULLED A RABBIT' },
         text: 'Out of the hat — a triple.' },
     ],
@@ -165,26 +166,26 @@ export const HEROES = [
 */
 export const GEAR = {
   // equipment (square)
-  GLOVES: { id: 'GLOVES', type: 'equipment', name: 'Batting Gloves', cost: 2,
-    conv: ['K', 'BAT'], text: 'First roll each at-bat: one ✕ becomes ⌁.' },
-  CLEATS: { id: 'CLEATS', type: 'equipment', name: 'Turf Cleats', cost: 3,
-    conv: ['K', 'RUN'], text: 'First roll each at-bat: one ✕ becomes ».' },
-  SHADES: { id: 'SHADES', type: 'equipment', name: 'Lucky Shades', cost: 3,
-    conv: ['K', 'EYE'], text: 'First roll each at-bat: one ✕ becomes ◎.' },
+  GLOVES: { id: 'GLOVES', type: 'equipment', name: 'Batting Gloves', cost: 5,
+    conv: ['K', 'BAT'], text: 'First roll with 2+ ✕ showing: one ✕ becomes ⌁.' },
+  CLEATS: { id: 'CLEATS', type: 'equipment', name: 'Turf Cleats', cost: 4,
+    conv: ['K', 'RUN'], text: 'First roll with 2+ ✕ showing: one ✕ becomes ».' },
+  SHADES: { id: 'SHADES', type: 'equipment', name: 'Lucky Shades', cost: 4,
+    conv: ['K', 'EYE'], text: 'First roll with 2+ ✕ showing: one ✕ becomes ◎.' },
   MAPLE:  { id: 'MAPLE', type: 'equipment', name: 'Maple Bat', cost: 4,
-    conv: ['BAT', 'POW'], text: 'First roll each at-bat: one ⌁ becomes ✦.' },
-  DONUT:  { id: 'DONUT', type: 'equipment', name: 'Bat Doughnut', cost: 4,
-    conv: ['EYE', 'POW'], text: 'First roll each at-bat: one ◎ becomes ✦.' },
-  HELMET: { id: 'HELMET', type: 'equipment', name: 'Rally Helmet', cost: 4,
+    conv: ['BAT', 'POW'], text: 'First roll each at-bat: one ⌁ becomes ✦ (never breaks a made hand).' },
+  DONUT:  { id: 'DONUT', type: 'equipment', name: 'Bat Doughnut', cost: 3,
+    conv: ['EYE', 'POW'], text: 'First roll each at-bat: one ◎ becomes ✦ (never breaks a made hand).' },
+  HELMET: { id: 'HELMET', type: 'equipment', name: 'Rally Helmet', cost: 3,
     guard: true, text: "The enemy pitcher's trick pitch has no effect on you." },
-  SPRINGS:{ id: 'SPRINGS', type: 'equipment', name: 'Springy Spikes', cost: 4,
+  SPRINGS:{ id: 'SPRINGS', type: 'equipment', name: 'Springy Spikes', cost: 2,
     hustle1: true, text: 'A single » is enough for a hustle base (normally 2).' },
-  CORK:   { id: 'CORK', type: 'equipment', name: 'Corked Bat', cost: 6,
+  CORK:   { id: 'CORK', type: 'equipment', name: 'Corked Bat', cost: 7,
     conv: ['ANY', 'POW'], text: 'First roll each at-bat: worst die becomes ✦.' },
   // perks (circle)
   RHYTHM: { id: 'RHYTHM', type: 'perk', name: 'Rally Rhythm', cost: 2,
     perk: 'reroll2out', text: '+1 reroll when there are 2 outs.' },
-  FILM:   { id: 'FILM', type: 'perk', name: 'Film Study', cost: 3,
+  FILM:   { id: 'FILM', type: 'perk', name: 'Film Study', cost: 4,
     perk: 'reroll1', text: '+1 reroll every at-bat.' },
   SCOUT:  { id: 'SCOUT', type: 'perk', name: 'Scouting Report', cost: 3,
     perk: 'rerollRISP', text: '+1 reroll with a runner in scoring position.' },
@@ -195,25 +196,26 @@ export const GEAR = {
   SIGNS:  { id: 'SIGNS', type: 'perk', name: 'Sign Stealer', cost: 5,
     perk: 'paidK', text: 'Reroll ✕ dice freely — the fixer charges $1 each.' },
   // quirks (triangle)
-  SWING:  { id: 'SWING', type: 'quirk', name: 'Free Swinger', cost: 2,
-    quirk: 'freeswing', text: 'Hits gain +1 base… but 2 ✕ is a strikeout.' },
+  SWING:  { id: 'SWING', type: 'quirk', name: 'Free Swinger', cost: 3,
+    quirk: 'freeswing', text: 'Hits gain +1 base and ✕ dice reroll free… but 2 ✕ is a strikeout.' },
   HECKLER:{ id: 'HECKLER', type: 'quirk', name: 'Heckler', cost: 2,
     quirk: 'heckler', text: 'Every CPU strikeout pays you $1.' },
-  SHOW:   { id: 'SHOW', type: 'quirk', name: 'Showboat', cost: 3,
-    quirk: 'showboat', text: 'Homers pay +$3. Strikeouts cost you $1.' },
+  SHOW:   { id: 'SHOW', type: 'quirk', name: 'Showboat', cost: 2,
+    quirk: 'showboat', text: 'Homers pay +$2. Strikeouts cost you $1.' },
   SLUMP:  { id: 'SLUMP', type: 'quirk', name: 'Slump Buster', cost: 3,
-    quirk: 'slump', text: 'After you strike out, your next hit gains +2 bases.' },
-  LOADED: { id: 'LOADED', type: 'quirk', name: 'Loaded Dice', cost: 4,
-    quirk: 'loaded', text: 'Each at-bat one die is loaded: 50/50 it lands ✦… or ✕.' },
+    quirk: 'slump', text: 'After you strike out, your next hit gains +1 base.' },
+  LOADED: { id: 'LOADED', type: 'quirk', name: 'Loaded Dice', cost: 5,
+    quirk: 'loaded', text: 'Each at-bat your worst die is loaded: 50/50 it lands ✦… or ✕.' },
   RABBIT: { id: 'RABBIT', type: 'quirk', name: "Rabbit's Foot", cost: 5,
     quirk: 'rabbit', text: 'Once per game, a strikeout roll is forgiven — all ✕ reroll free.' },
 };
 
 /* ---------- Season economy ---------- */
 export const ECON = {
-  startBudget: 5,
-  perRun: 1,       // paid live, every run you drive in
-  winBonus: 4,
+  startBudget: 4,
+  perRun: 1,       // paid live when you score
+  perRunCap: 3,    // max $ from runs per game — stops scoring snowballs
+  winBonus: 3,
   lossPay: 1,
   showPay: 1,      // show-up pay every game
   shopSize: 5,
@@ -224,7 +226,7 @@ export const SEASON_LEN = 10;
 /* ---------- CPU scenario archetypes ---------- */
 const CPU_SCEN = {
   power: [
-    { name: 'DINGER DERBY', req: { POW: 4 }, eff: { kind: 'hit', bases: 4, bonus: 1, label: 'DINGER + 1' } },
+    { name: 'DINGER DERBY', req: { POW: 4 }, eff: { kind: 'hit', bases: 4, label: 'DINGER DERBY' } },
     { name: 'WALL BANGER', req: { POW: 3 }, eff: { kind: 'hit', bases: 2, label: 'WALL BANGER' } },
     { name: 'MUSCLE OUT', req: { POW: 2, K: 2 }, eff: { kind: 'walk', label: 'MUSCLED A WALK' } },
   ],
@@ -246,42 +248,44 @@ const CPU_SCEN = {
 };
 
 /* ---------- The 10-game season slate ----------
-   gear flags are shown snapped to the CPU card AND affect their at-bats:
-     eq   — one K becomes BAT on their first roll
-     perk — they get 2 rerolls instead of 1
-   mod  — pitcher trick used against YOU (same mods as Dice Pennant).
+   CPU gear is no longer hardcoded: each game the CPU shops for its own loadout
+   with CPU_BUDGET[gameIdx] to spend (see cpuLoadout in engine.js). Their picks
+   snap onto their card and actually work during their at-bats.
+   mod — pitcher trick used against YOU (same mods as Dice Pennant).
 */
+export const CPU_BUDGET = [0, 1, 2, 3, 4, 5, 7, 9, 11, 14];
+
 export const OPPONENTS = [
   { key: 'MUD', team: 'MUDVILLE NINE', hero: { name: 'Casey Jr.', pos: 'RF', num: 9 },
     faces: ['BAT', 'BAT', 'POW', 'EYE', 'RUN', 'K'], arch: 'contact',
-    gear: {}, mod: null, blurb: 'Plucky. Beatable. Probably.' },
+    mod: null, blurb: 'Plucky. Beatable. Probably.' },
   { key: 'DDV', team: 'DUST DEVILS', hero: { name: 'Twister Cole', pos: 'SS', num: 3 },
     faces: ['RUN', 'RUN', 'BAT', 'BAT', 'EYE', 'K'], arch: 'speed',
-    gear: {}, mod: null, blurb: 'They run on everything.' },
+    mod: null, blurb: 'They run on everything.' },
   { key: 'HBC', team: 'HARBOR CATS', hero: { name: 'Salty Reyes', pos: '2B', num: 17 },
-    faces: ['BAT', 'BAT', 'BAT', 'EYE', 'RUN', 'K'], arch: 'contact',
-    gear: {}, mod: 'nohustle', blurb: 'Junkballer on the mound — no hustle bases for you.' },
+    faces: ['BAT', 'BAT', 'BAT', 'RUN', 'K', 'K'], arch: 'contact',
+    mod: 'nohustle', blurb: 'Junkballer on the mound — no hustle bases for you.' },
   { key: 'IRN', team: 'IRON PIGS', hero: { name: 'Hamhock Hale', pos: '1B', num: 33 },
     faces: ['POW', 'POW', 'BAT', 'BAT', 'K', 'K'], arch: 'power',
-    gear: { eq: 'GLOVES' }, mod: null, blurb: 'Big swings. Bigger forearms.' },
+    mod: null, blurb: 'Big swings. Bigger forearms.' },
   { key: 'PGH', team: 'PRAIRIE GHOSTS', hero: { name: 'Whisper Wynn', pos: 'CF', num: 0 },
-    faces: ['EYE', 'EYE', 'BAT', 'BAT', 'POW', 'K'], arch: 'eye',
-    gear: {}, mod: 'coldeye', blurb: 'With 2 outs, their iceman freezes your ◎ faces.' },
+    faces: ['EYE', 'EYE', 'BAT', 'BAT', 'K', 'K'], arch: 'eye',
+    mod: 'coldeye', blurb: 'With 2 outs, their iceman freezes your ◎ faces.' },
+  { key: 'CPK', team: 'COPPER KINGS', hero: { name: 'Duke Dalton', pos: '3B', num: 21 },
+    faces: ['BAT', 'BAT', 'POW', 'POW', 'K', 'K'], arch: 'contact',
+    mod: 'burnlead', blurb: 'Their flamethrower burns your leadoff die to ✕.' },
   { key: 'NEO', team: 'NEON KNIGHTS', hero: { name: 'Volt Vargas', pos: 'LF', num: 88 },
     faces: ['POW', 'POW', 'POW', 'BAT', 'K', 'K'], arch: 'power',
-    gear: { eq: 'MAPLE' }, mod: null, blurb: 'All gas, no brakes.' },
-  { key: 'CPK', team: 'COPPER KINGS', hero: { name: 'Duke Dalton', pos: '3B', num: 21 },
-    faces: ['BAT', 'BAT', 'POW', 'POW', 'EYE', 'K'], arch: 'contact',
-    gear: { eq: 'GLOVES', perk: 'FILM' }, mod: 'burnlead', blurb: 'Their flamethrower burns your leadoff die to ✕.' },
+    mod: null, blurb: 'All gas, no brakes.' },
   { key: 'OWL', team: 'MIDNIGHT OWLS', hero: { name: 'Hoot Moreno', pos: 'C', num: 5 },
-    faces: ['EYE', 'EYE', 'EYE', 'BAT', 'POW', 'K'], arch: 'eye',
-    gear: { eq: 'SHADES', perk: 'FILM' }, mod: 'coldeye', blurb: 'They see everything. Especially at night.' },
+    faces: ['EYE', 'EYE', 'EYE', 'POW', 'K', 'K'], arch: 'eye',
+    mod: 'coldeye', blurb: 'They see everything. Especially at night.' },
   { key: 'TBD', team: 'THUNDERBIRDS', hero: { name: 'Storm Okafor', pos: 'DH', num: 50 },
-    faces: ['POW', 'POW', 'POW', 'BAT', 'BAT', 'K'], arch: 'power',
-    gear: { eq: 'MAPLE', perk: 'FILM' }, mod: 'nohustle', blurb: 'The forecast calls for dingers.' },
+    faces: ['POW', 'POW', 'POW', 'BAT', 'K', 'K'], arch: 'power',
+    mod: 'nohustle', blurb: 'The forecast calls for dingers.' },
   { key: 'DYN', team: 'THE DYNASTY', hero: { name: 'Ace Kirby', pos: 'SS', num: 1 },
-    faces: ['POW', 'POW', 'BAT', 'BAT', 'EYE', 'K'], arch: 'contact',
-    gear: { eq: 'CORK', perk: 'FILM', quirk: 'SWING' }, mod: 'burnlead', blurb: 'Nine pennants. They want ten.' },
+    faces: ['POW', 'POW', 'POW', 'EYE', 'K', 'K'], arch: 'power',
+    mod: 'burnlead', blurb: 'Nine pennants. They want ten.' },
 ];
 
 export function cpuScenarios(opp) { return CPU_SCEN[opp.arch] || []; }
